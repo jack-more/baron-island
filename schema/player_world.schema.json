@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlayerWorldFormatterInput",
+  "type": "object",
+  "required": ["formatter_version", "player", "system", "evidence", "zones"],
+  "properties": {
+    "formatter_version": { "type": "string" },
+    "player": {
+      "type": "object",
+      "required": ["display_name", "nicknames", "hometown", "archetype"],
+      "properties": {
+        "display_name": { "type": "string" },
+        "nicknames": { "type": "array", "items": { "type": "string" } },
+        "hometown": { "type": "string" },
+        "archetype": { "type": "string" }
+      }
+    },
+    "system": {
+      "type": "object",
+      "required": ["title", "core_thesis", "audience_feeling", "world_structure", "main_quest"],
+      "properties": {
+        "title": { "type": "string" },
+        "core_thesis": { "type": "string" },
+        "audience_feeling": { "type": "string" },
+        "world_structure": { "type": "string" },
+        "main_quest": {
+          "type": "object",
+          "required": ["name", "description"],
+          "properties": {
+            "name": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        },
+        "interaction_rules": { "type": "array", "items": { "type": "string" } },
+        "social_rules": { "type": "array", "items": { "type": "string" } },
+        "rights_light_rules": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source_name", "url", "claim", "use"],
+        "properties": {
+          "id": { "type": "string" },
+          "source_name": { "type": "string" },
+          "url": { "type": "string" },
+          "claim": { "type": "string" },
+          "use": { "type": "string" }
+        }
+      }
+    },
+    "zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "title",
+          "era_role",
+          "evidence_ids",
+          "visuals",
+          "zeitgeist",
+          "fan_feeling",
+          "mission",
+          "story_unlock_prompt",
+          "outfits"
+        ],
+        "properties": {
+          "title": { "type": "string" },
+          "era_role": { "type": "string" },
+          "evidence_ids": { "type": "array", "items": { "type": "string" } },
+          "visuals": { "type": "array", "items": { "type": "string" } },
+          "zeitgeist": { "type": "array", "items": { "type": "string" } },
+          "fan_feeling": { "type": "string" },
+          "mission": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "story_unlock_prompt": { "type": "string" },
+          "outfits": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "interview_questions": { "type": "array", "items": { "type": "string" } },
+    "data_gaps": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "localUrl": "http://127.0.0.1:4173/",
+  "localTitle": "Baron Davis: Open World",
+  "localHttpStatus": 200,
+  "localScreenshot": "proofs/local-open-world-proof.png",
+  "referenceUrl": "https://messenger.abeto.co/",
+  "referenceScreenshot": "proofs/reference-visual-proof.png",
+  "artTarget": "proofs/art-target-proof.png",
+  "capturedAt": "2026-06-17T00:30:13.689Z"
+}

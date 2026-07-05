@@ -1,0 +1,75 @@
+{
+  "formatter_version": "1.0",
+  "player": {
+    "display_name": "Player Name",
+    "nicknames": ["Nickname One", "Nickname Two"],
+    "hometown": "City, State",
+    "archetype": "Example: fearless point guard, graceful scorer, defensive genius"
+  },
+  "system": {
+    "title": "The World Around the Game",
+    "core_thesis": "One sentence explaining why this player's world matters emotionally.",
+    "audience_feeling": "What a young fan of that time should feel after walking through the world.",
+    "world_structure": "Compact spherical memory world with six to eight era zones.",
+    "main_quest": {
+      "name": "The Route",
+      "description": "A simple quest line where the user carries memory objects across the player's eras and unlocks story fragments."
+    },
+    "interaction_rules": [
+      "Click or tap to walk",
+      "Smart follow camera",
+      "Checklist progression",
+      "Short NPC dialogue",
+      "Outfit customization",
+      "Memory object delivery missions"
+    ],
+    "social_rules": [
+      "Small rooms around 8 to 10 users",
+      "No open text chat in version one",
+      "3D emoji wheel for lightweight expression",
+      "Users can guide each other through movement"
+    ],
+    "rights_light_rules": [
+      "Use fictionalized marks until official assets are approved",
+      "Use inspired colors and silhouettes instead of exact jerseys",
+      "Use original audio beds until music is licensed",
+      "Mark all direct player stories as pending interview confirmation"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "E1",
+      "source_name": "Source Name",
+      "url": "https://example.com/source",
+      "claim": "Short factual claim supported by the source.",
+      "use": "How this fact or pattern should shape the world."
+    }
+  ],
+  "zones": [
+    {
+      "title": "Zone Name",
+      "era_role": "What chapter of life or career this zone represents.",
+      "evidence_ids": ["E1"],
+      "visuals": ["Visual motif one", "Visual motif two"],
+      "zeitgeist": ["Culture signal one", "Culture signal two"],
+      "fan_feeling": "What a young fan would have felt in this era.",
+      "mission": {
+        "name": "Mission Name",
+        "description": "Simple action that carries a story object through the zone."
+      },
+      "story_unlock_prompt": "Question Baron should ask the player to unlock the deeper story.",
+      "outfits": ["Era fit one", "Era fit two"]
+    }
+  ],
+  "interview_questions": [
+    "What place from this era still feels alive when you close your eyes?",
+    "What object would instantly take you back to this chapter?",
+    "What did young fans misunderstand about you then?",
+    "What story would you only tell another player?"
+  ],
+  "data_gaps": [
+    "Confirm exact childhood blocks and family locations with the player.",
+    "Confirm which schools, teams, brands, logos, and music can be licensed.",
+    "Confirm which personal stories can be public."
+  ]
+}

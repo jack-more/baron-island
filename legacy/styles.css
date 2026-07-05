@@ -1,0 +1,329 @@
+@import url("https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap");
+
+:root {
+  color-scheme: light;
+  --ink: #182126;
+  --paper: #fff9ec;
+  --blue: #8dc8cf;
+  --gold: #f3c85c;
+  --teal: #5eb4aa;
+  --shadow: 7px 7px 0 rgba(24, 33, 38, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--blue);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button {
+  color: inherit;
+  font: inherit;
+}
+
+.game-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100svh;
+}
+
+#worldCanvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.title-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.title-overlay::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(9, 29, 44, 0.1), rgba(9, 29, 44, 0.3)),
+    url("assets/anime-connected-world-board.png") center / cover;
+  filter: saturate(1.08);
+  transform: scale(1.02);
+}
+
+.title-overlay::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: radial-gradient(circle at 50% 42%, rgba(255, 249, 236, 0.02), rgba(24, 33, 38, 0.32));
+}
+
+.title-overlay.hidden {
+  display: none;
+}
+
+.title-overlay:not(.hidden) ~ .hud,
+.title-overlay:not(.hidden) ~ .prompt-card,
+.title-overlay:not(.hidden) ~ .outfit-rail {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.title-stack {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 88px;
+  color: var(--paper);
+  font-family: "Patrick Hand", Inter, sans-serif;
+  font-size: clamp(4.4rem, 17vw, 10rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.74;
+  text-align: center;
+  text-shadow:
+    3px 0 0 var(--ink),
+    -3px 0 0 var(--ink),
+    0 3px 0 var(--ink),
+    0 -3px 0 var(--ink),
+    8px 8px 0 rgba(24, 33, 38, 0.22);
+  transform: rotate(-1deg);
+  z-index: 1;
+}
+
+.start-button {
+  position: absolute;
+  bottom: max(38px, 7vh);
+  left: 50%;
+  min-width: 190px;
+  min-height: 66px;
+  padding: 12px 28px;
+  color: var(--ink);
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  font-family: "Patrick Hand", Inter, sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  pointer-events: auto;
+  transform: translateX(-50%) rotate(-1deg);
+  z-index: 1;
+}
+
+.hud,
+.prompt-card,
+.outfit-rail,
+.story-dialog {
+  position: absolute;
+  z-index: 10;
+  background: rgba(255, 249, 236, 0.88);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+.hud {
+  top: 14px;
+  left: 14px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: min(520px, calc(100vw - 28px));
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 2px;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  font-weight: 950;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #526363;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  overflow: hidden;
+  font-size: 1.2rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discoveries {
+  display: grid;
+  justify-items: end;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.discoveries span:first-child {
+  color: #c45b45;
+  font-size: 1.08rem;
+}
+
+.prompt-card {
+  left: 16px;
+  bottom: 18px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 14px;
+  border-radius: 2px;
+  font-family: "Patrick Hand", Inter, sans-serif;
+}
+
+.prompt-card h2 {
+  margin-bottom: 8px;
+  font-size: 1.42rem;
+  line-height: 1.06;
+}
+
+.prompt-card p {
+  margin-bottom: 12px;
+  font-size: 1.02rem;
+  line-height: 1.25;
+}
+
+.prompt-card button,
+.story-dialog button {
+  min-height: 40px;
+  padding: 8px 16px;
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.prompt-card button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.outfit-rail {
+  right: 14px;
+  top: 88px;
+  bottom: auto;
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 2px;
+}
+
+.outfit-rail button {
+  width: 54px;
+  height: 42px;
+  background: #f8f1df;
+  border: 2px solid rgba(24, 33, 38, 0.42);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.outfit-rail button.active {
+  background: var(--gold);
+  border-color: var(--ink);
+}
+
+.story-dialog {
+  left: 50%;
+  bottom: 28px;
+  width: min(660px, calc(100vw - 36px));
+  padding: 20px;
+  font-family: "Patrick Hand", Inter, sans-serif;
+  transform: translateX(-50%);
+}
+
+.story-dialog h2 {
+  margin-bottom: 10px;
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  line-height: 1.02;
+}
+
+.story-dialog p {
+  color: #243238;
+  font-size: clamp(1.08rem, 2.4vw, 1.38rem);
+  line-height: 1.28;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .hud {
+    top: 10px;
+    left: 10px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    width: calc(100vw - 20px);
+  }
+
+  .discoveries {
+    display: none;
+  }
+
+  .outfit-rail {
+    top: 88px;
+    right: 10px;
+    bottom: auto;
+  }
+
+  .prompt-card {
+    left: 10px;
+    bottom: 10px;
+    width: 245px;
+    padding: 12px;
+  }
+
+  .prompt-card h2 {
+    font-size: 1.2rem;
+  }
+
+  .prompt-card p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .story-dialog {
+    bottom: 12px;
+    padding: 16px;
+  }
+}

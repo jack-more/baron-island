@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Baron Island — a flyover world</title>
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/effects/OutlineEffect.js": "./vendor/OutlineEffect.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- Title / intro overlay -->
+<div id="title-overlay">
+  <div class="title-block">
+    <div class="title-eyebrow">A PLAYER WORLD BY BARON DAVIS</div>
+    <h1 class="title-main">BARON<br>ISLAND</h1>
+    <div class="title-sub">fly through a life</div>
+  </div>
+  <button id="skip-intro" class="ghost-btn">take the controls&ensp;✈</button>
+</div>
+
+<!-- Lower-third callout on landmark approach -->
+<div id="lower-third" class="hidden">
+  <div class="lt-accent"></div>
+  <div class="lt-text">
+    <div class="lt-name"></div>
+    <div class="lt-era"></div>
+  </div>
+</div>
+
+<!-- Persistent HUD -->
+<div id="hud" class="hidden">
+  <div id="hud-top">
+    <div id="brand"><span class="brand-dot"></span> BARON ISLAND</div>
+    <div id="hud-right">
+      <div id="balloon-count" title="balloons popped">🎈 0</div>
+      <div id="stars"></div>
+      <button id="mute-btn" class="ghost-btn" title="sound">♪</button>
+    </div>
+  </div>
+  <div id="tour-chip" class="hidden">ISLAND TOUR&ensp;·&ensp;touch anything to take over</div>
+  <div id="hint">steer: drag or WASD / arrows&ensp;·&ensp;boost: space&ensp;·&ensp;fly through a gold ring to land on a moment</div>
+</div>
+
+<!-- Landmark labels (projected) -->
+<div id="labels"></div>
+
+<!-- Moment card (shown while circling a landmark) -->
+<div id="moment-card" class="hidden">
+  <button class="card-close" id="card-close">✕&ensp;keep flying</button>
+  <div class="dc-chip"></div>
+  <h2 class="dc-name"></h2>
+  <div class="dc-era"></div>
+  <p class="dc-feel"></p>
+  <div class="dc-sponsor"><span class="dc-sponsor-tag"></span><span class="dc-sponsor-note"></span></div>
+  <button id="play-mission" class="primary-btn"></button>
+  <div class="dc-done hidden">★ story unlocked</div>
+</div>
+
+<!-- Minigame stage -->
+<div id="minigame" class="hidden">
+  <div id="mg-frame">
+    <div id="mg-head">
+      <div>
+        <div id="mg-title"></div>
+        <div id="mg-sponsor"></div>
+      </div>
+      <button id="mg-quit" class="ghost-btn">✕</button>
+    </div>
+    <div id="mg-goal"></div>
+    <div id="mg-body"></div>
+  </div>
+</div>
+
+<!-- Story unlock card -->
+<div id="story-card" class="hidden">
+  <div class="sc-frame">
+    <div class="sc-star">★</div>
+    <div class="sc-label">STORY UNLOCKED</div>
+    <div class="sc-zone"></div>
+    <p class="sc-prompt"></p>
+    <div class="sc-note">an interview prompt Baron can answer in his own voice</div>
+    <button id="sc-continue" class="primary-btn">back to the sky</button>
+  </div>
+</div>
+
+<!-- Finale -->
+<div id="finale" class="hidden">
+  <div class="sc-frame">
+    <div class="sc-star">★★★★★</div>
+    <div class="sc-label">EVERY MOMENT FOUND</div>
+    <p class="sc-prompt"></p>
+    <button id="fin-continue" class="primary-btn">keep flying</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

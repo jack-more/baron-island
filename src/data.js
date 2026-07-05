@@ -1,0 +1,86 @@
+// Baron Island — content distilled from players/baron_davis.json (evidence-backed).
+// Landmarks live on one island; positions are island-space (x east, z south), y from terrain.
+// Sponsor slots are placeholder inventory drawn from Baron's real portfolio (U.S. Chamber interview, BD7).
+
+export const LANDMARKS = [
+  {
+    id: 'south-central',
+    name: 'South Central LA',
+    short: 'FIRST COURT',
+    era: 'Childhood · the first hoop dream',
+    chip: 'Moment 1',
+    x: 92, z: 72, ground: 4,
+    color: 0xff7a4d,
+    feel: 'Blue LA sky over a chain-link court. Young Baron is already out there, dribbling toward everything that comes next.',
+    missionName: 'First Shot',
+    storyPrompt: 'Who first made you believe your game could take you beyond the block, and what did that belief cost them?',
+    minigame: 'shot',
+    goal: 'Time the meter and sink 3 shots on the first court. The sweet spot shrinks every make.',
+    sponsor: { name: 'KITU SUPER COFFEE', color: '#2f6f4f' },
+  },
+  {
+    id: 'crossroads-ucla',
+    name: 'Crossroads → UCLA',
+    short: 'WESTSIDE JUMP',
+    era: 'High school stardom · college pressure · the injury',
+    chip: 'Moment 2',
+    x: -104, z: 30, ground: 8,
+    color: 0x4d7dff,
+    feel: 'Westside mornings and blue-and-gold afternoons. A local star goes national — then learns who he is when the body says wait.',
+    missionName: 'Fix the Tape',
+    storyPrompt: 'When the injury happened, what did you learn about who you were when explosiveness was temporarily taken away?',
+    minigame: 'tape',
+    goal: 'The highlight reel is scattered. Match the three pairs of VHS fragments to rebuild the rise, the fall, and the recovery.',
+    sponsor: { name: 'TRACKLIB', color: '#7a4bff' },
+  },
+  {
+    id: 'oakland',
+    name: 'Oakland Harbor',
+    short: 'WE BELIEVE',
+    era: '2007 · the loudest building in basketball',
+    chip: 'Moment 3',
+    x: 66, z: -78, ground: 3,
+    color: 0xffc83d,
+    feel: 'A No. 8 seed, a yellow-out crowd, and a city that decided to believe before the rest of the country caught up.',
+    missionName: 'Find the Roar',
+    storyPrompt: 'What did Oracle sound like from inside your body before the rest of the country understood that series was real?',
+    minigame: 'roar',
+    goal: 'Feel the crowd. Tap exactly when the pulse ring meets the circle — five clean hits fill the roar meter.',
+    sponsor: { name: 'SLEEPER', color: '#1d2430' },
+  },
+  {
+    id: 'downtown-la',
+    name: 'Downtown LA',
+    short: 'HOMECOMING',
+    era: 'The hometown return · arena lights',
+    chip: 'Moment 4',
+    x: -6, z: 118, ground: 5,
+    color: 0xe0483e,
+    feel: 'Back home as a pro. The plaza is full of kids who look like he did — every one of them wants the board signed.',
+    missionName: 'Sign the Board',
+    storyPrompt: 'What changed when you came home as Baron Davis the NBA player instead of Baron Davis the LA kid?',
+    minigame: 'sign',
+    goal: 'Kids pop up around the plaza with the home-court board. Catch 8 signatures before the tunnel walk.',
+    sponsor: { name: 'THRIVE', color: '#3f8f6a' },
+  },
+  {
+    id: 'investor-tower',
+    name: 'Summit Tower',
+    short: 'BUSINESS INSIDE THE GAME',
+    era: 'Founder · investor · AI storyteller',
+    chip: 'Moment 5',
+    x: -34, z: -58, ground: 20,
+    color: 0x9a6bff,
+    feel: 'A rooftop court above a story engine, halfway up the mountain. Athletes own the archive, the interview, the fan space — and the deal flow.',
+    missionName: 'The BIG Board',
+    storyPrompt: 'What kind of business can only happen when athletes own the archive, the interview, the fan space, and the technology layer?',
+    minigame: 'big',
+    goal: 'Make the matches on the Business-Inside-the-Game board. Connect each person to what they bring to a player world.',
+    sponsor: { name: 'BUSINESS INSIDE THE GAME', color: '#9a6bff' },
+  },
+];
+
+export const FINALE_LINE =
+  'Baron Island is a place, not a page — a flyover world where a player\'s life becomes landmarks, his stories become moments, and every moment carries sponsorship inventory he owns.';
+
+export const SPONSOR_NOTE = 'sponsor slot — placeholder inventory from Baron\'s real portfolio';

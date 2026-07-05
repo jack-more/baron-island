@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Baron Davis: Open World</title>
+    <link rel="stylesheet" href="styles.css?v=baron-globe-sketch-1">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="game-shell">
+      <canvas id="worldCanvas" aria-label="Playable Baron Davis open world"></canvas>
+
+      <section id="titleOverlay" class="title-overlay" aria-label="Game start">
+        <div class="title-stack" aria-hidden="true">
+          <span>BARON</span>
+          <span>WORLD</span>
+        </div>
+        <button id="startButton" class="start-button" type="button">Begin</button>
+      </section>
+
+      <header class="hud" aria-label="World status">
+        <div class="mark">BD</div>
+        <div>
+          <p class="eyebrow">Open World</p>
+          <h1 id="locationName">85th & Avalon</h1>
+        </div>
+        <div class="discoveries">
+          <span id="discoveryCount">0/5</span>
+          <span>sketches</span>
+        </div>
+      </header>
+
+      <section id="promptCard" class="prompt-card" aria-live="polite">
+        <p class="eyebrow">Nearby Memory</p>
+        <h2 id="promptTitle">Spin the globe</h2>
+        <p id="promptCopy">Click or hold a point on the connected road to move through Baron world.</p>
+        <button id="promptButton" type="button">Open</button>
+      </section>
+
+      <section class="outfit-rail" aria-label="Districts">
+        <button type="button" data-district="0" aria-label="South Central district">SC</button>
+        <button type="button" data-district="1" aria-label="Downtown LA Clippers district">LAC</button>
+        <button type="button" data-district="2" aria-label="Crossroads UCLA district">UCLA</button>
+        <button type="button" data-district="3" aria-label="Oakland Warriors district">OAK</button>
+        <button type="button" data-district="4" aria-label="Investor tower district">INV</button>
+      </section>
+
+      <section id="storyDialog" class="story-dialog hidden" aria-live="polite">
+        <p id="storyEyebrow" class="eyebrow">Memory Unlocked</p>
+        <h2 id="storyTitle"></h2>
+        <p id="storyCopy"></p>
+        <button id="storyClose" type="button">Keep Walking</button>
+      </section>
+    </main>
+
+    <script type="module" src="app.js?v=baron-round-anime-2"></script>
+  </body>
+</html>

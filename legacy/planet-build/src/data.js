@@ -1,0 +1,80 @@
+// District content distilled from players/baron_davis.json (evidence-backed).
+// Five physical districts on one planet; story prompts come from the seven-era spine.
+
+export const PLANET_RADIUS = 30;
+
+export const DISTRICTS = [
+  {
+    id: 'south-central',
+    name: 'South Central LA',
+    short: 'FIRST COURT',
+    era: 'Childhood · the first hoop dream',
+    chip: 'Chapter 1',
+    lat: 10, lon: 0,
+    color: 0xff7a4d,
+    feel: 'Blue LA sky over a chain-link court. Young Baron is already out there, dribbling toward everything that comes next.',
+    missionName: 'Play: First Shot',
+    storyPrompt: 'Who first made you believe your game could take you beyond the block, and what did that belief cost them?',
+    minigame: 'shot',
+    goal: 'Time the meter and sink 3 shots on the first court. The sweet spot shrinks every make.',
+  },
+  {
+    id: 'crossroads-ucla',
+    name: 'Crossroads → UCLA',
+    short: 'WESTSIDE JUMP',
+    era: 'High school stardom · college pressure · the injury',
+    chip: 'Chapter 2',
+    lat: -8, lon: 72,
+    color: 0x4d7dff,
+    feel: 'Westside mornings and blue-and-gold afternoons. A local star goes national — then learns who he is when the body says wait.',
+    missionName: 'Play: Fix the Tape',
+    storyPrompt: 'When the injury happened, what did you learn about who you were when explosiveness was temporarily taken away?',
+    minigame: 'tape',
+    goal: 'The highlight reel is scattered. Match the three pairs of VHS fragments to rebuild the rise, the fall, and the recovery.',
+  },
+  {
+    id: 'oakland',
+    name: 'Oakland',
+    short: 'WE BELIEVE',
+    era: '2007 · the loudest building in basketball',
+    chip: 'Chapter 3',
+    lat: 12, lon: 144,
+    color: 0xffc83d,
+    feel: 'A No. 8 seed, a yellow-out crowd, and a city that decided to believe before the rest of the country caught up.',
+    missionName: 'Play: Find the Roar',
+    storyPrompt: 'What did Oracle sound like from inside your body before the rest of the country understood that series was real?',
+    minigame: 'roar',
+    goal: 'Feel the crowd. Tap exactly when the pulse ring meets the circle — five clean hits fill the roar meter.',
+  },
+  {
+    id: 'downtown-la',
+    name: 'Downtown LA',
+    short: 'HOMECOMING',
+    era: 'The hometown return · arena lights',
+    chip: 'Chapter 4',
+    lat: -10, lon: 216,
+    color: 0xe0483e,
+    feel: 'Back home as a pro. The plaza is full of kids who look like he did — every one of them wants the board signed.',
+    missionName: 'Play: Sign the Board',
+    storyPrompt: 'What changed when you came home as Baron Davis the NBA player instead of Baron Davis the LA kid?',
+    minigame: 'sign',
+    goal: 'Kids pop up around the plaza with the home-court board. Catch 8 signatures before the tunnel walk.',
+  },
+  {
+    id: 'investor-tower',
+    name: 'The Tower',
+    short: 'BUSINESS INSIDE THE GAME',
+    era: 'Founder · investor · AI storyteller',
+    chip: 'Chapter 5',
+    lat: 8, lon: 288,
+    color: 0x9a6bff,
+    feel: 'A rooftop court above a story engine. Athletes own the archive, the interview, the fan space — and the deal flow.',
+    missionName: 'Play: The BIG Board',
+    storyPrompt: 'What kind of business can only happen when athletes own the archive, the interview, the fan space, and the technology layer?',
+    minigame: 'big',
+    goal: 'Make the matches on the Business-Inside-the-Game board. Connect each person to what they bring to a player world.',
+  },
+];
+
+export const FINALE_LINE =
+  'Baron World is a playable memory planet — a repeatable format where players own their stories, fan attention, sponsorship inventory, and future media worlds.';
