@@ -20,6 +20,8 @@ It is built for Baron Davis to use with NBA friends.
 
 ## Baron Island — playable build (July 2026)
 
+**Live site:** https://jack-more.github.io/baron-island/ (GitHub Pages from `main` on `jack-more/baron-island`)
+
 The browser build at the repo root is **Baron Island**: a Wii Sports Resort-style
 island flyover. You pilot (or watch autopilot fly) a seaplane over an island built
 from Baron's life; gold rings over each landmark open sponsored mini-games that
