@@ -1,5 +1,8 @@
 import * as THREE from 'three';
-import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+import { EffectComposer } from '../vendor/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from '../vendor/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from '../vendor/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from '../vendor/jsm/postprocessing/OutputPass.js';
 import { LANDMARKS, FINALE_LINE, SPONSOR_NOTE, PRIZES, RAFFLE_NOTE, TICKETS_PER_WIN, TICKETS_PER_REPLAY, TICKETS_PER_BALLOON } from './data.js';
 import { buildIsland, surfaceRadiusAt, heightField, PLANET_R, ANCHORS, tangentFrame } from './island.js';
 import { buildLandmarks } from './landmarks.js';
@@ -14,15 +17,14 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-const effect = new OutlineEffect(renderer, {
-  defaultThickness: 0.005,
-  defaultColor: [0.07, 0.08, 0.11],
-});
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.5, 2400);
-scene.fog = new THREE.Fog(0xf2e3cf, 550, 1900);
+
+const composer = new EffectComposer(renderer);
+scene.fog = new THREE.Fog(0xfae4cb, 120, 430); // near/far adapt to camera altitude each frame
 
 // sky dome
 const skyMat = new THREE.ShaderMaterial({
@@ -30,8 +32,8 @@ const skyMat = new THREE.ShaderMaterial({
   depthWrite: false,
   fog: false,
   uniforms: {
-    top: { value: new THREE.Color(0x3d9fe6) },
-    horizon: { value: new THREE.Color(0xffe4bd) },
+    top: { value: new THREE.Color(0x8ec3ec) },
+    horizon: { value: new THREE.Color(0xfae4cb) },
     upDir: { value: new THREE.Vector3(0, 1, 0) },
   },
   vertexShader: `
@@ -43,7 +45,7 @@ const skyMat = new THREE.ShaderMaterial({
     varying vec3 vPos;
     void main() {
       float h = dot(normalize(vPos), upDir) * 0.5 + 0.5;
-      vec3 c = mix(horizon, top, smoothstep(0.495, 0.60, h));
+      vec3 c = mix(horizon, top, smoothstep(0.495, 0.66, h));
       gl_FragColor = vec4(c, 1.0);
       #include <colorspace_fragment>
     }
@@ -55,9 +57,10 @@ scene.add(sky);
 
 // lights — warm Wii-afternoon sun; shadow frustum follows the plane
 scene.add(new THREE.HemisphereLight(0xcfe6f5, 0xe8cf9a, 0.95));
-const sun = new THREE.DirectionalLight(0xffe3b0, 1.9);
+const sun = new THREE.DirectionalLight(0xffdfae, 2.4);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.radius = 7;
 const sc = sun.shadow.camera;
 sc.left = -110; sc.right = 110; sc.top = 110; sc.bottom = -110;
 sc.near = 20; sc.far = 500;
@@ -80,6 +83,12 @@ scene.add(sunDisc);
 const island = buildIsland(scene);
 const marks = buildLandmarks(scene, island.roadCurve);
 const flight = new Flight(scene);
+
+// ---------- postprocessing: soft dream bloom ----------
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.28, 0.85, 0.78);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
 
 // ---------- app state ----------
 let mode = 'intro'; // intro | fly | moment
@@ -642,6 +651,13 @@ function frameBody(dt) {
 
   // sky horizon follows the local up on the globe
   skyMat.uniforms.upDir.value.copy(camera.position).normalize();
+  // dream haze: melt the horizon in flight, keep the whole-planet view readable
+  {
+    const camDist = camera.position.length();
+    const k = THREE.MathUtils.clamp((camDist - 140) / 200, 0, 1);
+    scene.fog.near = THREE.MathUtils.lerp(85, 270, k);
+    scene.fog.far = THREE.MathUtils.lerp(300, 580, k);
+  }
 
   // sun shadow frustum follows the plane
   sunTarget.position.copy(flight.pos).setY(0);
@@ -652,13 +668,14 @@ function frameBody(dt) {
   updateCamera(dt);
   updateLabels();
   updateCafe();
-  effect.render(scene, camera);
+  composer.render();
 }
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
 frame();

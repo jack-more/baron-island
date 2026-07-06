@@ -108,12 +108,12 @@ function buildGlobe() {
   const geo = new THREE.SphereGeometry(PLANET_R, 260, 170);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const sand = new THREE.Color(0xe8d5a3);
-  const grass = new THREE.Color(0x72cb58);
-  const grassDark = new THREE.Color(0x52b046);
+  const sand = new THREE.Color(0xf2e3ba);
+  const grass = new THREE.Color(0x8fce7e);
+  const grassDark = new THREE.Color(0x6fb463);
   const rockC = new THREE.Color(0x9d9484);
   const dirt = new THREE.Color(0xc2a878);
-  const deep = new THREE.Color(0x9db8a8);
+  const deep = new THREE.Color(0xaec4c9);
   const tmp = new THREE.Color();
   const n = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
@@ -143,8 +143,9 @@ function buildGlobe() {
 }
 
 function buildOcean() {
-  const mat = new THREE.MeshToonMaterial({
-    color: 0x41bdf2, transparent: true, opacity: 0.86, emissive: 0x1580c2, emissiveIntensity: 0.32,
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x6cc4e8, transparent: true, opacity: 0.85, roughness: 0.35, metalness: 0,
+    emissive: 0x2a7fb8, emissiveIntensity: 0.18,
   });
   mat.userData.outlineParameters = { visible: false };
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(PLANET_R + 0.02, 96, 64), mat);

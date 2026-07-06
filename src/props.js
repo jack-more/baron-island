@@ -1,34 +1,20 @@
 // Toon prop factories. Every builder returns a THREE.Group whose origin sits at its base (y = 0).
 import * as THREE from 'three';
 
-// ---------- shared toon shading ----------
-const gradientTex = (() => {
-  const c = document.createElement('canvas');
-  c.width = 4; c.height = 1;
-  const g = c.getContext('2d');
-  // DBZ cel: three hard bands — deep shadow, mid, full light
-  const c2 = document.createElement('canvas');
-  ['#6a6a72', '#b9b9bd', '#ffffff'].forEach((col, i) => {
-    g.fillStyle = col; g.fillRect(i, 0, 1, 1);
-  });
-  g.fillStyle = '#ffffff'; g.fillRect(3, 0, 1, 1);
-  const t = new THREE.CanvasTexture(c);
-  t.minFilter = THREE.NearestFilter;
-  t.magFilter = THREE.NearestFilter;
-  return t;
-})();
-
+// ---------- shared clay shading (soft, dreamy — no cel bands, no outlines) ----------
 const matCache = new Map();
 export function toon(color, opts = {}) {
   const key = `${color}|${JSON.stringify(opts)}`;
   if (!opts.map && matCache.has(key)) return matCache.get(key);
-  const m = new THREE.MeshToonMaterial({ color, gradientMap: gradientTex, ...opts });
+  const { gradientMap, ...rest } = opts;
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.92, metalness: 0, ...rest });
   if (!opts.map) matCache.set(key, m);
   return m;
 }
 
 export function toonMap(tex, opts = {}) {
-  return new THREE.MeshToonMaterial({ map: tex, gradientMap: gradientTex, ...opts });
+  const { gradientMap, ...rest } = opts;
+  return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, metalness: 0, ...rest });
 }
 
 function mesh(geo, material, x = 0, y = 0, z = 0) {
@@ -218,9 +204,7 @@ export function fence(len = 4, h = 1.2) {
   const tex = fenceTex.clone();
   tex.needsUpdate = true;
   tex.repeat.set(len / 1.2, h / 1.2);
-  const mat = new THREE.MeshToonMaterial({
-    map: tex, gradientMap: gradientTex, transparent: true, side: THREE.DoubleSide, color: 0xffffff,
-  });
+  const mat = toonMap(tex, { transparent: true, side: THREE.DoubleSide, color: 0xffffff });
   const panel = new THREE.Mesh(new THREE.PlaneGeometry(len, h - 0.1), mat);
   panel.position.y = h / 2;
   g.add(panel);
@@ -257,7 +241,7 @@ export function shop(text = 'MARKET', bg = '#e0483e') {
   const g = new THREE.Group();
   g.add(box(2.6, 1.5, 2, 0xf6e2c4, 0, 0.75, 0));
   const signTex = bannerTexture(text, bg, '#fdf8ef', 78);
-  const sign = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.5, 0.12), new THREE.MeshToonMaterial({ map: signTex, gradientMap: gradientTex }));
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.5, 0.12), toonMap(signTex));
   sign.position.set(0, 1.72, 1.0);
   sign.castShadow = true;
   g.add(sign);
@@ -273,7 +257,7 @@ export function shop(text = 'MARKET', bg = '#e0483e') {
 export function towerBlock(w, h, d, base, lit, rows = 6, cols = 3) {
   const g = new THREE.Group();
   const tex = windowTexture(base, lit, rows, cols);
-  const side = new THREE.MeshToonMaterial({ map: tex, gradientMap: gradientTex });
+  const side = toonMap(tex);
   const cap = toon(new THREE.Color(base).multiplyScalar(0.8).getHex());
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, cap, cap, side, side]);
   m.position.y = h / 2;
@@ -285,7 +269,7 @@ export function towerBlock(w, h, d, base, lit, rows = 6, cols = 3) {
 export function glassTower(h = 7) {
   const g = new THREE.Group();
   const tex = windowTexture('#26364f', '#ffd98a', 12, 5, 0.6);
-  const side = new THREE.MeshToonMaterial({ map: tex, gradientMap: gradientTex });
+  const side = toonMap(tex);
   const cap = toon(0x1d2836);
   const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, h, 2.6), [side, side, cap, cap, side, side]);
   body.position.y = h / 2;
@@ -293,7 +277,7 @@ export function glassTower(h = 7) {
   g.add(body);
   // rooftop court
   const courtT = courtTexture('#3f6d52', '#fdf8ef', '#ffc83d');
-  const court = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 1.6), new THREE.MeshToonMaterial({ map: courtT, gradientMap: gradientTex }));
+  const court = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 1.6), toonMap(courtT));
   court.position.y = h + 0.05;
   g.add(court);
   const hp = hoop(0.65);
@@ -347,7 +331,7 @@ export function hoop(scale = 1) {
 export function court(w = 5, d = 3.4, asphalt = '#4b4f58', line = '#fdf8ef', key = '#e0483e') {
   const g = new THREE.Group();
   const tex = courtTexture(asphalt, line, key);
-  const top = new THREE.MeshToonMaterial({ map: tex, gradientMap: gradientTex });
+  const top = toonMap(tex);
   const sideMat = toon(0x3c4049);
   const slab = new THREE.Mesh(new THREE.BoxGeometry(w, 0.12, d), [sideMat, sideMat, top, sideMat, sideMat, sideMat]);
   slab.position.y = 0.06;
@@ -378,7 +362,7 @@ export function arena(scale = 1, wallColor = 0xf0e6d2, roofColor = 0xfdf8ef, tri
   g.add(trim);
   if (text) {
     const tex = bannerTexture(text, '#1d2430', '#ffc83d', 84);
-    const banner = new THREE.Mesh(new THREE.BoxGeometry(2.4 * scale, 0.5 * scale, 0.1), new THREE.MeshToonMaterial({ map: tex, gradientMap: gradientTex }));
+    const banner = new THREE.Mesh(new THREE.BoxGeometry(2.4 * scale, 0.5 * scale, 0.1), toonMap(tex));
     banner.position.set(0, 0.9 * scale, 2.52 * scale);
     banner.castShadow = true;
     g.add(banner);
@@ -430,7 +414,7 @@ export function bridge(len = 7, towerH = 2.6, deckColor = 0xc9553f) {
 export function campusHall(w = 3, h = 2, d = 2.2) {
   const g = new THREE.Group();
   const tex = windowTexture('#b45f45', '#ffe9b8', 3, 5, 0.3);
-  const side = new THREE.MeshToonMaterial({ map: tex, gradientMap: gradientTex });
+  const side = toonMap(tex);
   const cap = toon(0x8a4634);
   const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, cap, cap, side, side]);
   body.position.y = h / 2;
@@ -455,7 +439,7 @@ export function gym(text = 'CROSSROADS') {
   roof.position.y = 1.6;
   g.add(roof);
   const tex = bannerTexture(text, '#1d2430', '#fdf8ef', 64);
-  const sign = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.44, 0.1), new THREE.MeshToonMaterial({ map: tex, gradientMap: gradientTex }));
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.44, 0.1), toonMap(tex));
   sign.position.set(0, 1.25, 1.26);
   g.add(sign);
   g.add(box(0.7, 1.0, 0.08, 0x33405c, 0, 0.5, 1.22));
@@ -501,33 +485,35 @@ const cloudTextures = (() => {
     cvs.width = 320; cvs.height = 170;
     const g = cvs.getContext('2d');
     g.clearRect(0, 0, 320, 170);
-    const baseY = 128;
+    const baseY = 126;
     const lobes = [];
     const n = 4 + v;
     for (let i = 0; i < n; i++) {
       lobes.push({
         x: 52 + (i / (n - 1)) * 216 + (Math.random() - 0.5) * 14,
-        y: baseY - 26 - Math.random() * 34 - Math.sin((i / (n - 1)) * Math.PI) * 26,
+        y: baseY - 26 - Math.random() * 30 - Math.sin((i / (n - 1)) * Math.PI) * 24,
         r: 30 + Math.random() * 18,
       });
     }
-    const drawShape = () => {
+    const drawShape = (grow = 0) => {
       g.beginPath();
-      for (const L of lobes) { g.moveTo(L.x + L.r, L.y); g.arc(L.x, L.y, L.r, 0, Math.PI * 2); }
-      g.rect(lobes[0].x - 10, baseY - 24, lobes[n - 1].x - lobes[0].x + 20, 24);
+      for (const L of lobes) { g.moveTo(L.x + L.r + grow, L.y); g.arc(L.x, L.y, L.r + grow, 0, Math.PI * 2); }
+      g.rect(lobes[0].x - 10 - grow, baseY - 24, lobes[n - 1].x - lobes[0].x + 20 + grow * 2, 24 + grow * 0.6);
     };
-    // ink outline via fat stroke underneath
-    g.lineJoin = 'round';
-    g.strokeStyle = '#1d2430'; g.lineWidth = 10;
-    drawShape(); g.stroke();
-    // white body
+    // soft halo
+    g.fillStyle = 'rgba(255,255,255,0.35)';
+    drawShape(7); g.fill();
+    // body
     g.fillStyle = '#ffffff';
     drawShape(); g.fill();
-    // cel shadow band along the flat bottom
+    // pastel under-shading
     g.save();
     drawShape(); g.clip();
-    g.fillStyle = '#c9d8e4';
-    g.fillRect(0, baseY - 16, 320, 20);
+    const grad = g.createLinearGradient(0, baseY - 44, 0, baseY + 2);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, 'rgba(186,205,232,0.55)');
+    g.fillStyle = grad;
+    g.fillRect(0, baseY - 46, 320, 50);
     g.restore();
     const t = new THREE.CanvasTexture(cvs);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -849,7 +835,7 @@ export function domeBuilding(r = 2, h = 2, bodyColor = '#f6ead2', domeColor = 0x
     const bandTex = bannerTexture(text, '#00000000', textColor, 78);
     const band = new THREE.Mesh(
       new THREE.CylinderGeometry(r * 1.01, r * 1.03, h * 0.32, 20, 1, true, -0.8, 1.6),
-      new THREE.MeshToonMaterial({ map: bandTex, transparent: true, side: THREE.DoubleSide })
+      toonMap(bandTex, { transparent: true, side: THREE.DoubleSide })
     );
     band.position.y = h * 0.62;
     g.add(band);

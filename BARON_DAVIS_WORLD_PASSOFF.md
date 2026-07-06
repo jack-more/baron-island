@@ -25,6 +25,17 @@ care reform, "barista A&Rs → managers → owners"), **SLIC Studios** (where he
 the **STEELCUT** albums, and Business Inside the Game. The island is his world; the
 five moments are still Baron's evidence-backed life arc.
 
+## DREAM-CLAY ART DIRECTION (July 6, latest)
+
+The harsh cel/outline look is retired. Current render pipeline, in the direction of
+lego-stylized-nature (hexianWeb), Bruno Simon's infinite-world, and icurtis1's
+raycast-vehicle: **no outlines**, soft clay MeshStandard materials (roughness 0.92),
+ACES filmic tone mapping, gentle UnrealBloom (0.28 / thresh 0.78), soft 7px-radius
+shadows with a cool fill light, pastel palette (sage grass, cream sand, pastel sea),
+soft halo billboard clouds (no ink), and **altitude-adaptive dream fog** — in flight
+the horizon melts into cream haze; from orbit the planet stays readable. Vendored
+postprocessing lives in vendor/jsm/.
+
 ## FULL PLANET (July 6 rebuild)
 
 The world is no longer an island patch — it is a **complete globe** (R=110): oceans,
