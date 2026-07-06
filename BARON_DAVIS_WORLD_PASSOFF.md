@@ -25,6 +25,17 @@ care reform, "barista A&Rs → managers → owners"), **SLIC Studios** (where he
 the **STEELCUT** albums, and Business Inside the Game. The island is his world; the
 five moments are still Baron's evidence-backed life arc.
 
+## FULL PLANET (July 6 rebuild)
+
+The world is no longer an island patch — it is a **complete globe** (R=110): oceans,
+noise-driven continents, a great-circle road that wraps the whole planet, and flight
+that never hits an edge. Position/heading are spherical (parallel-transported tangent
+vectors); the camera, sky gradient, labels (horizon-culled), water landing, splash FX,
+and all placement work in local tangent frames. **NBA-Ballers luxury landscape**: a
+Bel-Air-style estate ridge plus ~26 scattered hillside estates (modern white villas,
+glass walls, infinity pools with loungers, private courts, sports cars), yachts
+anchored offshore, supercars + hover capsules on the planetary road.
+
 ## What Exists Now (the current build)
 
 `index.html` + `src/` at the repo root is **BART OATMEAL** — a browser-playable Three.js

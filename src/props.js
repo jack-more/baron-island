@@ -937,3 +937,124 @@ export function bush(scale = 1, leaf = 0x4f9c58) {
   g.add(ball(0.3 * scale, 0xff8ab0, -0.2 * scale, 0.5 * scale, 0.15 * scale, 6));
   return g;
 }
+
+// ============ NBA Ballers luxury kit ============
+
+export function mansion(scale = 1) {
+  // stacked modern villa: white volumes, glass walls, flat roofs
+  const g = new THREE.Group();
+  const glass = windowTexture('#dfe9ee', '#ffe9b8', 2, 5, 0.65);
+  const glassMat = toonMap(glass);
+  const white = toon(0xfaf6ec);
+  const cream = toon(0xe8dfd0);
+  // main volume
+  const m1 = new THREE.Mesh(new THREE.BoxGeometry(7 * scale, 2.6 * scale, 4.5 * scale), [white, white, white, white, glassMat, white]);
+  m1.position.y = 1.3 * scale;
+  m1.castShadow = m1.receiveShadow = true;
+  g.add(m1);
+  // upper volume, offset
+  const m2 = new THREE.Mesh(new THREE.BoxGeometry(4.6 * scale, 2.2 * scale, 3.6 * scale), [glassMat, white, white, white, glassMat, white]);
+  m2.position.set(-1.2 * scale, 3.7 * scale, -0.4 * scale);
+  m2.castShadow = m2.receiveShadow = true;
+  g.add(m2);
+  // roof slabs
+  g.add(box(7.6 * scale, 0.18 * scale, 5.0 * scale, 0x2f3542, 0, 2.72 * scale, 0));
+  g.add(box(5.2 * scale, 0.18 * scale, 4.1 * scale, 0x2f3542, -1.2 * scale, 4.9 * scale, -0.4 * scale));
+  // entry columns + door
+  g.add(cyl(0.12 * scale, 0.12 * scale, 2.4 * scale, 0xfaf6ec, 2.6 * scale, 1.2 * scale, 2.5 * scale, 8));
+  g.add(box(1.1 * scale, 2.0 * scale, 0.12 * scale, 0x3a4150, 2.6 * scale, 1.0 * scale, 2.28 * scale));
+  return g;
+}
+
+export function pool(scale = 1) {
+  const g = new THREE.Group();
+  // deck
+  g.add(box(5.4 * scale, 0.16 * scale, 3.6 * scale, 0xe8dfd0, 0, 0.08 * scale, 0));
+  // water
+  const w = box(4.4 * scale, 0.14 * scale, 2.6 * scale, 0x4fd4e8, 0, 0.18 * scale, 0);
+  w.material = toon(0x4fd4e8, { emissive: 0x2aa8c8, emissiveIntensity: 0.5 });
+  g.add(w);
+  // loungers
+  for (const dx of [-1.6, -0.6]) {
+    const ch = beachChair(0xfdf8ef);
+    ch.scale.setScalar(0.8 * scale);
+    ch.position.set(dx * scale, 0.16 * scale, 1.9 * scale);
+    g.add(ch);
+  }
+  return g;
+}
+
+export function yacht(scale = 1) {
+  const g = new THREE.Group();
+  // hull
+  const hull = box(2.2 * scale, 0.8 * scale, 7 * scale, 0xfdfdfd, 0, 0.55 * scale, 0);
+  g.add(hull);
+  const bow = cone(1.1 * scale, 1.8 * scale, 0xfdfdfd, 0, 0.55 * scale, -4.2 * scale, 4);
+  bow.rotation.x = -Math.PI / 2;
+  bow.rotation.y = Math.PI / 4;
+  bow.scale.z = 0.72;
+  g.add(bow);
+  g.add(box(2.24 * scale, 0.14 * scale, 7 * scale, 0x1d2430, 0, 0.16 * scale, 0)); // waterline stripe
+  // decks
+  const glass = windowTexture('#26364f', '#9fd4e8', 1, 6, 0.9);
+  const d1 = new THREE.Mesh(new THREE.BoxGeometry(1.8 * scale, 0.7 * scale, 4.4 * scale), toonMap(glass));
+  d1.position.set(0, 1.3 * scale, 0.4 * scale);
+  d1.castShadow = true;
+  g.add(d1);
+  g.add(box(1.3 * scale, 0.5 * scale, 2.6 * scale, 0xfdfdfd, 0, 1.9 * scale, 0.8 * scale));
+  // radar mast
+  g.add(cyl(0.05 * scale, 0.05 * scale, 1.0 * scale, 0xfdfdfd, 0, 2.6 * scale, 0.6 * scale, 6));
+  g.add(box(0.7 * scale, 0.08 * scale, 0.08 * scale, 0x3a4150, 0, 3.0 * scale, 0.6 * scale));
+  // bow court hint: tiny hoop on the aft deck
+  const hp = hoop(0.5 * scale);
+  hp.position.set(0, 0.95 * scale, 2.9 * scale);
+  g.add(hp);
+  return g;
+}
+
+export function sportsCar(color = 0xe0483e, scale = 1) {
+  const g = new THREE.Group();
+  // low wedge body
+  const body = box(1.05 * scale, 0.22 * scale, 2.3 * scale, color, 0, 0.3 * scale, 0);
+  g.add(body);
+  const nose = box(1.0 * scale, 0.14 * scale, 0.7 * scale, color, 0, 0.24 * scale, -1.35 * scale);
+  nose.rotation.x = 0.08;
+  g.add(nose);
+  const cabin = box(0.85 * scale, 0.24 * scale, 1.0 * scale, 0x9fd4e8, 0, 0.52 * scale, 0.15 * scale);
+  cabin.rotation.x = -0.06;
+  g.add(cabin);
+  const spoiler = box(1.0 * scale, 0.06 * scale, 0.25 * scale, color, 0, 0.55 * scale, 1.15 * scale);
+  g.add(spoiler);
+  g.add(box(0.16 * scale, 0.16 * scale, 0.16 * scale, 0x1d2430, -0.42 * scale, 0.55 * scale, 1.15 * scale));
+  g.add(box(0.16 * scale, 0.16 * scale, 0.16 * scale, 0x1d2430, 0.42 * scale, 0.55 * scale, 1.15 * scale));
+  for (const [x, z] of [[-0.5, 0.75], [0.5, 0.75], [-0.5, -0.85], [0.5, -0.85]]) {
+    const w = cyl(0.22 * scale, 0.22 * scale, 0.14 * scale, 0x22262e, x * scale, 0.22 * scale, z * scale, 10);
+    w.rotation.z = Math.PI / 2;
+    g.add(w);
+  }
+  return g;
+}
+
+// full estate composite: mansion + pool + private court + palms + car
+export function estate(scale = 1, courtKey = '#e0483e') {
+  const g = new THREE.Group();
+  const m = mansion(scale);
+  g.add(m);
+  const p = pool(scale);
+  p.position.set(5.6 * scale, 0, 2.2 * scale);
+  g.add(p);
+  const ct = court(4.6 * scale, 3.1 * scale, '#3a7f5c', '#fdf8ef', courtKey);
+  ct.position.set(-1.4 * scale, 0, 6.4 * scale);
+  ct.scale.setScalar(0.85);
+  g.add(ct);
+  const car = sportsCar([0xe0483e, 0xffc83d, 0x1d2430, 0x9a6bff][Math.floor(Math.random() * 4)], scale);
+  car.position.set(4.4 * scale, 0, -2.6 * scale);
+  car.rotation.y = 0.6;
+  g.add(car);
+  for (const [dx, dz] of [[-4.4, -2.4], [7.8, -0.8], [-4.8, 4.2]]) {
+    const pm = palm(1.7 * scale + Math.random() * 0.5);
+    pm.position.set(dx * scale, 0, dz * scale);
+    g.add(pm);
+  }
+  return g;
+}

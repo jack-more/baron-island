@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import { LANDMARKS, FINALE_LINE, SPONSOR_NOTE, PRIZES, RAFFLE_NOTE, TICKETS_PER_WIN, TICKETS_PER_REPLAY, TICKETS_PER_BALLOON } from './data.js';
-import { buildIsland, terrainHeight } from './island.js';
+import { buildIsland, surfaceRadiusAt, heightField, PLANET_R, ANCHORS, tangentFrame } from './island.js';
 import { buildLandmarks } from './landmarks.js';
 import { Flight } from './flight.js';
 import { startMinigame } from './minigames.js';
@@ -32,17 +32,18 @@ const skyMat = new THREE.ShaderMaterial({
   uniforms: {
     top: { value: new THREE.Color(0x3d9fe6) },
     horizon: { value: new THREE.Color(0xffe4bd) },
+    upDir: { value: new THREE.Vector3(0, 1, 0) },
   },
   vertexShader: `
     varying vec3 vPos;
     void main() { vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
   `,
   fragmentShader: `
-    uniform vec3 top; uniform vec3 horizon;
+    uniform vec3 top; uniform vec3 horizon; uniform vec3 upDir;
     varying vec3 vPos;
     void main() {
-      float h = normalize(vPos).y * 0.5 + 0.5;
-      vec3 c = mix(horizon, top, smoothstep(0.47, 0.72, h));
+      float h = dot(normalize(vPos), upDir) * 0.5 + 0.5;
+      vec3 c = mix(horizon, top, smoothstep(0.495, 0.60, h));
       gl_FragColor = vec4(c, 1.0);
       #include <colorspace_fragment>
     }
@@ -231,7 +232,7 @@ function enterMoment(L) {
   AUDIO.ringChime();
   tourChip.classList.add('hidden');
   flight.autopilot = true;
-  flight.apOrbit = { center: new THREE.Vector3(L.def.x, 0, L.def.z), radius: 46, height: L.def.ground + 22 };
+  flight.apOrbit = { anchor: L.anchor.clone(), radius: 42, height: L.def.ground + 18 };
   showMomentCard(L);
   setLowerThird(null);
 }
@@ -371,17 +372,18 @@ function setLowerThird(L) {
 
 // ---------- labels projection ----------
 const projTmp = new THREE.Vector3();
+const _camN = new THREE.Vector3();
 function updateLabels() {
   const overlayOpen = mode === 'intro' || !storyCard.classList.contains('hidden') ||
     !finaleEl.classList.contains('hidden') || !pzModal.classList.contains('hidden');
   marks.landmarks.forEach((L, i) => {
     const e = labelEls[i];
     if (overlayOpen) { e.style.opacity = '0'; return; }
-    projTmp.copy(L.center);
-    projTmp.y += 8;
+    projTmp.copy(L.center).addScaledVector(L.anchor, 8);
     const dist = projTmp.distanceTo(camera.position);
+    const facing = L.anchor.dot(_camN.copy(camera.position).normalize());
     projTmp.project(camera);
-    if (projTmp.z > 1 || dist > 420 || Math.abs(projTmp.x) > 1.1) { e.style.opacity = '0'; return; }
+    if (facing < 0.35 || projTmp.z > 1 || dist > 420 || Math.abs(projTmp.x) > 1.1) { e.style.opacity = '0'; return; }
     e.style.opacity = dist < 70 ? '0' : '1';
     e.style.left = ((projTmp.x + 1) / 2 * window.innerWidth) + 'px';
     e.style.top = ((-projTmp.y + 1) / 2 * window.innerHeight) + 'px';
@@ -389,15 +391,16 @@ function updateLabels() {
 }
 
 // café label projection + drift-by melody
-const cafePos = new THREE.Vector3(island.palmCourt.x, island.palmCourt.ground + 9, island.palmCourt.z);
+const cafePos = island.palmCourt.pos.clone().addScaledVector(island.palmCourt.anchor, 6);
 let lastMelody = -30;
 function updateCafe() {
   const overlayOpen = mode === 'intro' || !storyCard.classList.contains('hidden') ||
     !finaleEl.classList.contains('hidden') || !pzModal.classList.contains('hidden');
   projTmp.copy(cafePos);
   const dist = projTmp.distanceTo(camera.position);
+  const facingC = island.palmCourt.anchor.dot(_camN.copy(camera.position).normalize());
   projTmp.project(camera);
-  if (overlayOpen || projTmp.z > 1 || dist > 260 || Math.abs(projTmp.x) > 1.1) {
+  if (overlayOpen || facingC < 0.35 || projTmp.z > 1 || dist > 260 || Math.abs(projTmp.x) > 1.1) {
     cafeLabel.style.opacity = '0';
   } else {
     cafeLabel.style.opacity = dist < 40 ? '0' : '0.92';
@@ -419,16 +422,18 @@ const waterFx = [];
     const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide });
     mat.userData.outlineParameters = { visible: false };
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -Math.PI / 2;
     mesh.visible = false;
     scene.add(mesh);
     waterFx.push({ mesh, t: 0, life: 0, grow: 1 });
   }
 }
-function spawnRing(x, z, scale = 1, life = 0.8, grow = 6) {
+const _rd = new THREE.Vector3();
+function spawnRing(worldPos, scale = 1, life = 0.8, grow = 6) {
   const fx = waterFx.find(f => f.life <= 0);
   if (!fx) return;
-  fx.mesh.position.set(x, 0.22, z);
+  _rd.copy(worldPos).normalize();
+  fx.mesh.position.copy(_rd).multiplyScalar(PLANET_R + 1.3);
+  fx.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), _rd);
   fx.mesh.scale.setScalar(scale);
   fx.baseScale = scale;
   fx.t = 0; fx.life = life; fx.grow = grow;
@@ -451,9 +456,10 @@ function updateWaterFx(dt) {
     if (wakeTimer <= 0) {
       wakeTimer = 0.09;
       flight.forward(_wk);
-      const sideX = -_wk.z, sideZ = _wk.x;
+      const upW = flight.up(new THREE.Vector3());
+      const side = new THREE.Vector3().crossVectors(upW, _wk);
       for (const d of [1, -1]) {
-        spawnRing(flight.pos.x + sideX * 0.9 * d - _wk.x * 1.2, flight.pos.z + sideZ * 0.9 * d - _wk.z * 1.2, 0.5, 0.55, 2.4);
+        spawnRing(flight.pos.clone().addScaledVector(side, 0.9 * d).addScaledVector(_wk, -1.2), 0.5, 0.55, 2.4);
       }
     }
   }
@@ -479,7 +485,7 @@ function consumeFlightEvents() {
   for (const ev of flight.events) {
     if (ev === 'splash') {
       AUDIO.splash(true);
-      for (let i = 0; i < 4; i++) spawnRing(flight.pos.x, flight.pos.z, 1 + i * 0.7, 0.9 + i * 0.12, 9);
+      for (let i = 0; i < 4; i++) spawnRing(flight.pos, 1 + i * 0.7, 0.9 + i * 0.12, 9);
       if (!localStorage.getItem('oatmeal-landed')) {
         localStorage.setItem('oatmeal-landed', '1');
         tickets += 3;
@@ -491,11 +497,11 @@ function consumeFlightEvents() {
       }
     } else if (ev === 'takeoff') {
       AUDIO.splash(false);
-      for (let i = 0; i < 2; i++) spawnRing(flight.pos.x, flight.pos.z, 1 + i, 0.7, 7);
+      for (let i = 0; i < 2; i++) spawnRing(flight.pos, 1 + i, 0.7, 7);
       showToast('AIRBORNE');
     } else if (ev === 'hop') {
       AUDIO.splash(false);
-      spawnRing(flight.pos.x, flight.pos.z, 1.4, 0.7, 7);
+      spawnRing(flight.pos, 1.4, 0.7, 7);
     }
   }
   flight.events.length = 0;
@@ -511,8 +517,7 @@ function checkPickups(t) {
   if (mode === 'fly') {
     for (const L of marks.landmarks) {
       _d.copy(flight.pos).sub(L.ring.position);
-      // distance to ring plane (ring faces its local z after rotY)
-      const planeN = new THREE.Vector3(Math.sin(L.ring.rotation.y), 0, Math.cos(L.ring.rotation.y));
+      const planeN = L.ring.userData.normal;
       const dPlane = Math.abs(_d.dot(planeN));
       const dRadial = Math.sqrt(Math.max(0, _d.lengthSq() - dPlane * dPlane));
       if (dPlane < 5 && dRadial < 9) { enterMoment(L); return; }
@@ -535,38 +540,43 @@ function checkPickups(t) {
 }
 
 // ---------- chase camera ----------
-const camPos = new THREE.Vector3(0, 160, -430);
+const camPos = new THREE.Vector3(0, PLANET_R * 1.6, PLANET_R * 3.0);
 const camLook = new THREE.Vector3();
 const _fwd = new THREE.Vector3();
+const _camUp = new THREE.Vector3(0, 1, 0);
 function updateCamera(dt) {
   flight.forward(_fwd);
+  const upV = flight.up(new THREE.Vector3());
   let desired, look;
   if (mode === 'intro') {
-    // wide establishing arc that hands off to the chase cam
+    // pull from a full-globe view down into the chase cam
     const k = Math.min(1, introT / INTRO_LEN);
-    const a = -0.9 + k * 1.6;
-    desired = new THREE.Vector3(Math.sin(a) * 330 * (1 - k * 0.55), 150 - k * 100, Math.cos(a) * -330 * (1 - k * 0.4));
-    look = new THREE.Vector3(0, 20, 0).lerp(flight.pos, k * 0.9);
+    const orbitDir = new THREE.Vector3(Math.sin(k * 1.4 - 0.6), 0.55 - k * 0.25, Math.cos(k * 1.4 - 0.6)).normalize();
+    const farPos = orbitDir.multiplyScalar(PLANET_R * 3.1 - k * PLANET_R * 1.9);
+    const chase = flight.pos.clone().addScaledVector(_fwd, -16).addScaledVector(upV, 6.2);
+    desired = farPos.lerp(chase, k * k);
+    look = new THREE.Vector3(0, 0, 0).lerp(flight.pos, k);
   } else {
-    desired = flight.pos.clone().addScaledVector(_fwd, -16).add(new THREE.Vector3(0, 6.2, 0));
+    desired = flight.pos.clone().addScaledVector(_fwd, -16).addScaledVector(upV, 6.2);
     look = flight.pos.clone().addScaledVector(_fwd, 18);
     if (flight.landed) {
-      desired = flight.pos.clone().addScaledVector(_fwd, -10.5).add(new THREE.Vector3(0, 3.1, 0));
-      look = flight.pos.clone().addScaledVector(_fwd, 16).add(new THREE.Vector3(0, 1.2, 0));
+      desired = flight.pos.clone().addScaledVector(_fwd, -10.5).addScaledVector(upV, 3.1);
+      look = flight.pos.clone().addScaledVector(_fwd, 16).addScaledVector(upV, 1.2);
     }
     if (mode === 'moment') {
-      desired = flight.pos.clone().addScaledVector(_fwd, -22).add(new THREE.Vector3(0, 9, 0));
-      look = new THREE.Vector3(focused.def.x, focused.def.ground + 8, focused.def.z).lerp(flight.pos, 0.25);
+      desired = flight.pos.clone().addScaledVector(_fwd, -22).addScaledVector(upV, 9);
+      look = focused.surface.clone().addScaledVector(focused.anchor, 6).lerp(flight.pos, 0.25);
     }
   }
-  // keep camera above terrain
-  const floor = terrainHeight(desired.x, desired.z) + 3;
-  if (desired.y < floor) desired.y = floor;
-  const stiff = mode === 'intro' ? 1.2 : 3.4;
+  // keep camera above the globe surface
+  const floorR = surfaceRadiusAt(desired) + 3;
+  if (desired.length() < floorR) desired.setLength(floorR);
+  const stiff = mode === 'intro' ? 1.6 : 3.4;
   camPos.lerp(desired, Math.min(1, stiff * dt));
   camLook.lerp(look, Math.min(1, 5 * dt));
   camera.position.copy(camPos);
-  camera.up.set(0, 1, 0);
+  _camUp.lerp(mode === 'intro' ? new THREE.Vector3(0, 1, 0) : upV, Math.min(1, 4 * dt)).normalize();
+  camera.up.copy(_camUp);
   camera.lookAt(camLook);
   // subtle roll with the plane + boost FOV
   camera.rotateZ(flight.roll * 0.22);
@@ -591,7 +601,7 @@ function frameBody(dt) {
   if (mode === 'intro') {
     introT += dt;
     flight.autopilot = true;
-    flight.apTarget = new THREE.Vector3(60, 34, 40);
+    flight.apTarget = ANCHORS['south-central'].clone().multiplyScalar(PLANET_R + 22);
     if (introT >= INTRO_LEN) endIntro();
   } else if (mode === 'fly') {
     const manual = anyManualInput();
@@ -630,6 +640,9 @@ function frameBody(dt) {
   marks.update(elapsed, dt);
   checkPickups(elapsed);
 
+  // sky horizon follows the local up on the globe
+  skyMat.uniforms.upDir.value.copy(camera.position).normalize();
+
   // sun shadow frustum follows the plane
   sunTarget.position.copy(flight.pos).setY(0);
   sun.position.copy(sunTarget.position).addScaledVector(sunDir, 260);
@@ -658,8 +671,9 @@ window.baronWorld = {
     endIntro();
     const L = marks.landmarks.find(l => l.def.id === id);
     if (!L) return;
-    flight.pos.set(L.def.x - 60, L.def.ground + 24, L.def.z + 40);
-    flight.yaw = Math.atan2(L.def.x - flight.pos.x, -(L.def.z - flight.pos.z));
+    const { e } = tangentFrame(L.anchor);
+    flight.pos.copy(L.anchor).multiplyScalar(PLANET_R + L.def.ground + 20).addScaledVector(e, -55);
+    flight.heading.copy(e);
     flight.autopilot = true;
     flight.apOrbit = null;
     flight.apTarget = L.center.clone();
@@ -674,5 +688,5 @@ window.baronWorld = {
     for (let i = 0; i < steps; i++) frameBody(1 / 60);
   },
   reset: () => { localStorage.clear(); location.reload(); },
-  _scene: scene, _marks: marks, _flight: flight, _keys: keys,
+  _scene: scene, _marks: marks, _flight: flight, _keys: keys, _hf: heightField, _R: PLANET_R,
 };

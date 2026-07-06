@@ -1,8 +1,8 @@
-// Flight model: an always-forward seaplane with bank-to-turn steering,
-// terrain-following floor, soft ceiling and bounds, plus an autopilot that can
-// tour waypoints or orbit a landmark. Feel target: Wii Sports Resort island flyover.
+// Spherical flight: the seaplane flies around a full globe. Position is a world
+// vector; heading is a unit tangent that parallel-transports as the plane moves.
+// Local up is always away from the planet core — the world wraps, no edges.
 import * as THREE from 'three';
-import { clearanceHeight, terrainHeight, WORLD_EDGE } from './island.js';
+import { PLANET_R, heightField, clearanceRadius } from './island.js';
 import * as P from './props.js';
 
 export class Flight {
@@ -17,9 +17,9 @@ export class Flight {
 
     scene.add(this.group);
 
-    this.pos = new THREE.Vector3(0, 90, -330);
-    this.yaw = 0;            // heading, 0 = -z... we use standard: fwd derived below
-    this.pitch = 0;
+    this.pos = new THREE.Vector3(0.2, 0.35, 1).normalize().multiplyScalar(PLANET_R + 55);
+    this.heading = new THREE.Vector3(1, 0, 0);
+    this.pitch = 0;          // climb angle
     this.roll = 0;
     this.speed = 26;
     this.baseSpeed = 26;
@@ -27,146 +27,147 @@ export class Flight {
     this.steer = { x: 0, y: 0, boost: false };
 
     this.autopilot = true;
-    this.apTarget = new THREE.Vector3(0, 30, 0);
-    this.apOrbit = null;     // {center: Vector3, radius, height}
+    this.apTarget = this.pos.clone();
+    this.apOrbit = null;     // {anchor: unit Vector3, radius (arc len), height (above sea)}
 
-    this.landed = false;     // resting on the water
-    this.events = [];        // 'splash' | 'takeoff' | 'hop' — consumed by main
+    this.landed = false;
+    this.events = [];
 
-    this._fwd = new THREE.Vector3();
-    this._q = new THREE.Quaternion();
-    this._e = new THREE.Euler();
+    this._upv = new THREE.Vector3();
+    this._right = new THREE.Vector3();
+    this._m = new THREE.Matrix4();
+    this._tmp = new THREE.Vector3();
   }
 
-  forward(out) {
-    const cp = Math.cos(this.pitch);
-    return out.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), -Math.cos(this.yaw) * cp);
-  }
+  up(out) { return (out || this._upv).copy(this.pos).normalize(); }
+  forward(out) { return out.copy(this.heading); }
+  get altitude() { return this.pos.length() - PLANET_R; }
 
-  // steer toward a world point; returns synthetic steer values
-  _steerToward(target, dt) {
-    const dx = target.x - this.pos.x;
-    const dz = target.z - this.pos.z;
-    const desiredYaw = Math.atan2(dx, -dz);
-    let dyaw = desiredYaw - this.yaw;
-    dyaw = ((dyaw % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-    const dist = Math.hypot(dx, dz);
-    const desiredPitch = Math.atan2(target.y - this.pos.y, Math.max(dist, 1));
-    return {
-      x: THREE.MathUtils.clamp(-dyaw * 1.6, -1, 1),
-      y: THREE.MathUtils.clamp((desiredPitch - this.pitch) * 2.2, -1, 1),
-      boost: dist > 150,
-    };
+  // signed steering toward a world point, using the local tangent plane
+  _steerToward(target, up) {
+    const to = this._tmp.copy(target).sub(this.pos);
+    const vertical = to.dot(up);
+    to.addScaledVector(up, -vertical);
+    const dist = to.length();
+    if (dist > 0.001) to.divideScalar(dist);
+    const right = new THREE.Vector3().crossVectors(up, this.heading).negate();
+    const turn = to.dot(right);
+    const ahead = to.dot(this.heading);
+    let x = THREE.MathUtils.clamp(turn * 2.2, -1, 1);
+    if (ahead < -0.2) x = x >= 0 ? 1 : -1; // target behind: commit to the turn
+    const targetAlt = target.length() - PLANET_R;
+    const y = THREE.MathUtils.clamp((targetAlt - this.altitude) * 0.14 - this.pitch * 1.2, -1, 1);
+    return { x, y, boost: dist > 120 };
   }
 
   update(dt, t) {
+    const up = this.up();
     let s = this.steer;
+
     if (this.autopilot) {
       if (this.apOrbit) {
         const o = this.apOrbit;
-        // aim at a point ~70 degrees ahead on the orbit circle
-        const cur = Math.atan2(this.pos.x - o.center.x, this.pos.z - o.center.z);
-        const ahead = cur + 1.2;
-        const tgt = new THREE.Vector3(
-          o.center.x + Math.sin(ahead) * o.radius,
-          o.height,
-          o.center.z + Math.cos(ahead) * o.radius
-        );
-        s = this._steerToward(tgt, dt);
+        // aim at a point ahead on the circle around the anchor
+        const rel = this.pos.clone().normalize();
+        const e = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), o.anchor).normalize();
+        const f = new THREE.Vector3().crossVectors(o.anchor, e).normalize();
+        const cur = Math.atan2(rel.dot(e), rel.dot(f));
+        const ang = cur + 0.55;
+        const theta = o.radius / PLANET_R;
+        const dir = o.anchor.clone().multiplyScalar(Math.cos(theta))
+          .addScaledVector(e, Math.sin(theta) * Math.sin(ang))
+          .addScaledVector(f, Math.sin(theta) * Math.cos(ang))
+          .normalize();
+        const tgt = dir.multiplyScalar(PLANET_R + o.height);
+        s = this._steerToward(tgt, up);
         s.boost = false;
       } else {
-        s = this._steerToward(this.apTarget, dt);
+        s = this._steerToward(this.apTarget, up);
       }
     }
 
-    const groundH = terrainHeight(this.pos.x, this.pos.z);
-    const overWater = groundH < -0.2;
+    const overWater = heightField(this.pos.clone().normalize()) < -0.2;
 
     if (this.landed) {
-      // ---- taxiing on the water ----
+      // taxi on the sea surface
       this.pitch += (0 - this.pitch) * Math.min(1, 5 * dt);
       const targetRoll = -s.x * 0.28 + Math.sin(t * 1.6) * 0.02;
       this.roll += (targetRoll - this.roll) * Math.min(1, 5 * dt);
-      this.yaw += -s.x * 0.9 * dt;
+      this.heading.applyAxisAngle(up, -s.x * 0.9 * dt);
       const taxiTarget = s.boost ? 34 : 7;
       this.speed += (taxiTarget - this.speed) * Math.min(1, (s.boost ? 0.9 : 1.8) * dt);
-      this.forward(this._fwd);
-      this._fwd.y = 0;
-      this.pos.addScaledVector(this._fwd, this.speed * dt);
-      this.pos.y = 1.25 + Math.sin(t * 2.1) * 0.08;
-      // throttle up enough and she lifts off
+      this.pos.addScaledVector(this.heading, this.speed * dt);
+      this.pos.setLength(PLANET_R + 1.25 + Math.sin(t * 2.1) * 0.08);
       if (this.speed > 27) {
         this.landed = false;
         this.pitch = 0.22;
         this.events.push('takeoff');
       }
-      // shallow water ahead: hop over the beach
-      if (terrainHeight(this.pos.x + this._fwd.x * 6, this.pos.z + this._fwd.z * 6) > -0.4) {
+      const aheadN = this.pos.clone().addScaledVector(this.heading, 6).normalize();
+      if (heightField(aheadN) > -0.4) {
         this.landed = false;
         this.pitch = 0.3;
         this.speed = Math.max(this.speed, 22);
         this.events.push('hop');
       }
     } else {
-      // ---- airborne ----
+      // airborne
       const targetRoll = -s.x * 0.85;
       this.roll += (targetRoll - this.roll) * Math.min(1, 5 * dt);
-      this.yaw += -s.x * 1.05 * dt * (this.speed / this.boostSpeed + 0.55);
+      this.heading.applyAxisAngle(up, -s.x * 1.05 * dt * (this.speed / this.boostSpeed + 0.55));
       const targetPitch = THREE.MathUtils.clamp(s.y, -1, 1) * 0.5;
       this.pitch += (targetPitch - this.pitch) * Math.min(1, 3.2 * dt);
 
       const targetSpeed = s.boost ? this.boostSpeed : this.baseSpeed;
       this.speed += (targetSpeed - this.speed) * Math.min(1, 1.6 * dt);
 
-      this.forward(this._fwd);
-      this.pos.addScaledVector(this._fwd, this.speed * dt);
+      this.pos.addScaledVector(this.heading, this.speed * Math.cos(this.pitch) * dt);
+      this.pos.addScaledVector(up, this.speed * Math.sin(this.pitch) * dt);
 
       if (overWater && !this.autopilot) {
-        // glide low over open water -> touchdown on the pontoons
-        if (this.pos.y <= 1.45) {
+        if (this.altitude <= 1.45) {
           this.landed = true;
-          this.pos.y = 1.25;
+          this.pos.setLength(PLANET_R + 1.25);
           this.roll *= 0.3;
           this.events.push('splash');
         }
       } else {
-        // terrain floor over land (and for the autopilot, always)
-        const floor = clearanceHeight(this.pos.x, this.pos.z) + 6;
-        if (this.pos.y < floor) {
-          this.pos.y += (floor - this.pos.y) * Math.min(1, 6 * dt);
+        const floorR = clearanceRadius(this.pos) + 6;
+        const r = this.pos.length();
+        if (r < floorR) {
+          this.pos.setLength(r + (floorR - r) * Math.min(1, 6 * dt));
           this.pitch = Math.max(this.pitch, 0.06);
         }
-        if (this.pos.y < 7) this.pos.y = 7;
       }
-      if (this.pos.y > 130) this.pos.y += (130 - this.pos.y) * Math.min(1, 2 * dt);
+      // soft ceiling
+      if (this.altitude > 55) {
+        this.pos.setLength(PLANET_R + 55 + (this.altitude - 55) * Math.max(0, 1 - 2 * dt));
+        this.pitch = Math.min(this.pitch, 0);
+      }
     }
 
-    // world bounds: gently turn back toward the island
-    const r = Math.hypot(this.pos.x, this.pos.z);
-    if (r > WORLD_EDGE && !this.autopilot) {
-      const backYaw = Math.atan2(-this.pos.x, this.pos.z);
-      let d = ((backYaw - this.yaw) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-      this.yaw += THREE.MathUtils.clamp(d, -1, 1) * dt * 1.4 * Math.min(1, (r - WORLD_EDGE) / 40);
-    }
+    // re-orthogonalize heading to the sphere at the new position
+    const newUp = this.up(new THREE.Vector3());
+    this.heading.addScaledVector(newUp, -this.heading.dot(newUp)).normalize();
 
-    // pose the plane (yaw/pitch then roll around forward axis) + gentle bob
-    this.group.position.copy(this.pos);
-    if (!this.landed) this.group.position.y += Math.sin(t * 1.8) * 0.15;
-    this._e.set(this.pitch, -this.yaw, 0, 'YXZ');
-    this.group.quaternion.setFromEuler(this._e);
+    // pose: nose (-Z) along heading, +Y along local up; then pitch and roll
+    this._right.crossVectors(this.heading, newUp).normalize();
+    this._m.makeBasis(this._right, newUp, this.heading.clone().negate());
+    this.group.quaternion.setFromRotationMatrix(this._m);
+    this.group.rotateX(this.pitch);
     this.group.rotateZ(this.roll);
+    this.group.position.copy(this.pos);
+    if (!this.landed) this.group.position.addScaledVector(newUp, Math.sin(t * 1.8) * 0.15);
 
-    // prop spin
     const prop = this.plane.getObjectByName('prop');
     prop.rotation.z += dt * (this.landed ? 6 + this.speed * 0.5 : 18 + this.speed * 0.6);
 
-    // banner trails behind and below, waving (tucked up while on the water)
     this.banner.position.set(0, this.landed ? 0.45 : -0.55, 4.9);
     const bp = this.cloth.geometry.attributes.position;
     const base = this.cloth.userData.basePos;
     for (let i = 0; i < bp.count; i++) {
       const bx = base[i * 3];
-      const wave = Math.sin(t * 6 + bx * 1.4) * 0.16 * (0.25 + (bx + 2.8) / 5.6);
+      const wave = Math.sin(t * 6 + bx * 1.4) * 0.16 * (0.25 + (bx + 1.7) / 3.4);
       bp.setZ(i, base[i * 3 + 2] + wave);
       bp.setY(i, base[i * 3 + 1] + wave * 0.5);
     }
