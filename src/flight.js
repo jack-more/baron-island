@@ -11,7 +11,7 @@ export class Flight {
     this.plane = P.seaplane();
     this.group.add(this.plane);
 
-    this.banner = P.towBanner('BARON ISLAND');
+    this.banner = P.towBanner('BART OATMEAL');
     this.cloth = this.banner.getObjectByName('cloth');
     this.group.add(this.banner);
 

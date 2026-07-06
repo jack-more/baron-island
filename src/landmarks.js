@@ -140,7 +140,7 @@ function buildTower(g, L) {
   const tower = P.glassTower(6.5);
   tower.scale.setScalar(2.6);
   put(g, tower, x - 4, z - 3, 0.5);
-  const corp = P.domeBuilding(4.6, 3.4, '#f3efe4', 0xffc83d, 'BARON CORP.');
+  const corp = P.domeBuilding(4.6, 3.4, '#f3efe4', 0xffc83d, 'OATMEAL CORP.');
   put(g, corp, x + 7, z - 6, Math.atan2(-x - 7, -z + 6) + Math.PI);
   const o2 = P.domeBuilding(2.0, 2.4, '#d9ecf2', 0x9a6bff);
   put(g, o2, x + 11, z + 1, -0.4);
@@ -149,7 +149,7 @@ function buildTower(g, L) {
   const portalRef = put(g, portal, x + 5, z + 8);
   const bb = new THREE.Group();
   bb.add(P.cyl(0.12, 0.16, 4.4, 0x3a4150, 0, 2.2, 0, 8));
-  const tex = P.bannerTexture('B.I.G.', '#1d2430', '#9a6bff', 88);
+  const tex = P.bannerTexture('SLIC', '#1d2430', '#9a6bff', 88);
   const sign = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.25, 0.2), P.toonMap(tex));
   sign.position.y = 5.0; sign.castShadow = true;
   bb.add(sign);
@@ -202,7 +202,7 @@ export function buildLandmarks(scene, roadCurve) {
     return { obj: b, popped: false, phase: Math.random() * 6, poppedAt: 0 };
   });
 
-  const blimpObj = P.blimp('SLEEPER');
+  const blimpObj = P.blimp('OATMEAL RADIO');
   blimpObj.scale.setScalar(2.6);
   root.add(blimpObj);
 

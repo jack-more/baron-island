@@ -574,7 +574,7 @@ export function seaplane() {
   return g;
 }
 
-export function towBanner(text = 'BARON ISLAND') {
+export function towBanner(text = 'BART OATMEAL') {
   const g = new THREE.Group();
   const tex = bannerTexture(text, '#f6ead2', '#1d2430', 70);
   const mat = toonMap(tex, { side: THREE.DoubleSide });
@@ -855,7 +855,7 @@ export function capsuleCar(color = 0xe0483e) {
 }
 
 // Kame-House-style beach house for the offshore islet
-export function baronHouse() {
+export function baronHouse(name = 'OATMEAL HOUSE') {
   const g = new THREE.Group();
   const tex = portholeTexture('#ffb8c4', '#fff3d0', 2, 6, 0.4);
   const body = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.6, 2.4, 18), toonMap(tex));
@@ -865,10 +865,32 @@ export function baronHouse() {
   const roof = ball(2.5, 0xe0483e, 0, 2.4, 0, 18);
   roof.scale.y = 0.55;
   g.add(roof);
-  const sign = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.7, 0.14), toonMap(bannerTexture('BARON HOUSE', '#e0483e', '#fdf8ef', 62)));
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.7, 0.14), toonMap(bannerTexture(name, '#e0483e', '#fdf8ef', 56)));
   sign.position.set(0, 2.1, 2.35);
   sign.castShadow = true;
   g.add(sign);
   g.add(box(0.9, 1.4, 0.1, 0x5a4632, 0, 0.7, 2.52));
+  return g;
+}
+
+
+export function flowerPatch(scale = 1) {
+  const g = new THREE.Group();
+  const cols = [0xff8ab0, 0xffc83d, 0xff7a4d, 0xb98aff, 0xfdf8ef];
+  const n = 4 + Math.floor(Math.random() * 5);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, r = Math.random() * 1.1 * scale;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    g.add(cyl(0.02 * scale, 0.02 * scale, 0.3 * scale, 0x4f9c58, x, 0.15 * scale, z, 4));
+    g.add(ball(0.09 * scale, cols[i % 5], x, 0.34 * scale, z, 6));
+  }
+  return g;
+}
+
+export function bush(scale = 1, leaf = 0x4f9c58) {
+  const g = new THREE.Group();
+  g.add(ball(0.5 * scale, leaf, 0, 0.32 * scale, 0, 8));
+  g.add(ball(0.36 * scale, leaf, 0.35 * scale, 0.22 * scale, 0.1 * scale, 8));
+  g.add(ball(0.3 * scale, 0xff8ab0, -0.2 * scale, 0.5 * scale, 0.15 * scale, 6));
   return g;
 }

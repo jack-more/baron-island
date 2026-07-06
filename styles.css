@@ -229,13 +229,17 @@ html, body {
 
 /* ---------- Minigame ---------- */
 #minigame {
+  /* split-screen: the island keeps flying on the left */
   position: fixed; inset: 0; z-index: 30;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(29,36,48,.32);
-  backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 3vw;
+  background: linear-gradient(90deg, transparent 40%, rgba(29,36,48,.28));
+  pointer-events: none;
 }
 #mg-frame {
-  width: min(560px, 92vw);
+  pointer-events: auto;
+  width: min(540px, 92vw);
+  max-height: 92vh; overflow-y: auto;
   background: var(--paper);
   border-radius: 26px;
   padding: 26px 28px 30px;
@@ -420,3 +424,49 @@ html, body {
   color: #2f4f4a;
   background: rgba(255,240,220,.88);
 }
+
+/* cassette memory cards */
+.mem-card.tape {
+  aspect-ratio: 220/150;
+  background-size: cover; background-position: center;
+  color: transparent;
+}
+.mem-card.tape.matched { outline: 4px solid var(--gold); }
+
+/* raffle shelf */
+#prizes-modal {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(29,36,48,.4);
+  backdrop-filter: blur(4px);
+}
+.pz-frame {
+  width: min(520px, 92vw);
+  background: var(--paper);
+  border-radius: 26px;
+  padding: 26px 28px;
+  box-shadow: 0 30px 80px rgba(29,36,48,.4);
+  animation: cardPop .4s cubic-bezier(.2,.9,.25,1) both;
+}
+.pz-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.pz-title { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .04em; }
+.pz-sub { font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; color: rgba(29,36,48,.55); margin-top: 4px; }
+.pz-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border: 3px solid var(--ink); border-radius: 16px;
+  margin-bottom: 10px; background: var(--cream);
+}
+.pz-icon { font-size: 26px; }
+.pz-info { flex: 1; }
+.pz-name { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; }
+.pz-desc { font-size: 11.5px; color: rgba(29,36,48,.6); }
+.pz-cost { font-family: var(--font-display); font-weight: 700; font-size: 13px; white-space: nowrap; }
+.pz-enter {
+  font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: .08em;
+  padding: 8px 14px; border-radius: 999px; border: none;
+  background: var(--ink); color: var(--paper); cursor: pointer;
+}
+.pz-enter:disabled { background: rgba(29,36,48,.25); cursor: default; }
+.pz-enter.entered { background: var(--gold); color: var(--ink); }
+.pz-note { font-size: 11px; line-height: 1.5; color: rgba(29,36,48,.55); margin-top: 8px; font-style: italic; }
+#ticket-count { font-weight: 700; }

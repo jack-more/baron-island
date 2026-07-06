@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
-import { LANDMARKS, FINALE_LINE, SPONSOR_NOTE } from './data.js';
+import { LANDMARKS, FINALE_LINE, SPONSOR_NOTE, PRIZES, RAFFLE_NOTE, TICKETS_PER_WIN, TICKETS_PER_REPLAY, TICKETS_PER_BALLOON } from './data.js';
 import { buildIsland, terrainHeight } from './island.js';
 import { buildLandmarks } from './landmarks.js';
 import { Flight } from './flight.js';
@@ -16,8 +16,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const effect = new OutlineEffect(renderer, {
-  defaultThickness: 0.0025,
-  defaultColor: [0.13, 0.15, 0.19],
+  defaultThickness: 0.0042,
+  defaultColor: [0.07, 0.08, 0.11],
 });
 
 const scene = new THREE.Scene();
@@ -90,9 +90,11 @@ let currentGameCleanup = null;
 let shownLowerThird = null;
 let tourIdx = 0;
 
-const unlocked = new Set(JSON.parse(localStorage.getItem('baronisland-stars') || '[]'));
-let balloonsPopped = Number(localStorage.getItem('baronisland-balloons') || 0);
-let finaleShown = localStorage.getItem('baronisland-finale') === '1';
+const unlocked = new Set(JSON.parse(localStorage.getItem('oatmeal-stars') || '[]'));
+let tickets = Number(localStorage.getItem('oatmeal-tickets') || 0);
+const raffleEntries = new Set(JSON.parse(localStorage.getItem('oatmeal-entries') || '[]'));
+let finaleShown = localStorage.getItem('oatmeal-finale') === '1';
+function saveTickets() { localStorage.setItem('oatmeal-tickets', String(tickets)); }
 
 // ---------- dom ----------
 const $ = (id) => document.getElementById(id);
@@ -100,7 +102,7 @@ const titleOverlay = $('title-overlay');
 const lowerThird = $('lower-third');
 const hud = $('hud');
 const starsEl = $('stars');
-const balloonEl = $('balloon-count');
+const ticketEl = $('ticket-count');
 const tourChip = $('tour-chip');
 const labelsRoot = $('labels');
 const card = $('moment-card');
@@ -111,7 +113,7 @@ const finaleEl = $('finale');
 const cafeLabel = (() => {
   const e = document.createElement('div');
   e.className = 'district-label ambient';
-  e.innerHTML = '♪ Radio Café';
+  e.innerHTML = '♪ Oatmeal Radio Café';
   labelsRoot.appendChild(e);
   return e;
 })();
@@ -128,7 +130,7 @@ function renderCounters() {
   starsEl.innerHTML = LANDMARKS
     .map(d => `<span class="${unlocked.has(d.id) ? 'on' : 'off'}">★</span>`)
     .join('');
-  balloonEl.textContent = `🎈 ${balloonsPopped}`;
+  ticketEl.textContent = `🎟 ${tickets}`;
   labelEls.forEach((e, i) => {
     const L = marks.landmarks[i];
     e.innerHTML = L.def.name + (unlocked.has(L.def.id) ? '<span class="star-mini">★</span>' : '');
@@ -168,7 +170,8 @@ window.addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (mode === 'intro' && (e.code === 'Space' || e.code === 'Enter')) endIntro();
   if (e.code === 'Escape') {
-    if (!mg.classList.contains('hidden')) { closeMinigame(); if (focused) showMomentCard(focused); }
+    if (!pzModal.classList.contains('hidden')) { pzModal.classList.add('hidden'); }
+    else if (!mg.classList.contains('hidden')) { closeMinigame(); if (focused) showMomentCard(focused); }
     else if (!storyCard.classList.contains('hidden')) { storyCard.classList.add('hidden'); resumeFlight(); }
     else if (mode === 'moment') resumeFlight();
   }
@@ -280,9 +283,13 @@ function unlock(L) {
   const d = L.def;
   const first = !unlocked.has(d.id);
   unlocked.add(d.id);
-  localStorage.setItem('baronisland-stars', JSON.stringify([...unlocked]));
+  localStorage.setItem('oatmeal-stars', JSON.stringify([...unlocked]));
+  const award = first ? TICKETS_PER_WIN : TICKETS_PER_REPLAY;
+  tickets += award;
+  saveTickets();
   renderCounters();
   AUDIO.winFanfare();
+  storyCard.querySelector('.sc-label').textContent = `STORY UNLOCKED · +${award} 🎟`;
   storyCard.querySelector('.sc-zone').textContent = d.name + ' — ' + d.short;
   storyCard.querySelector('.sc-prompt').textContent = '“' + d.storyPrompt + '”';
   storyCard.classList.remove('hidden');
@@ -293,7 +300,7 @@ $('sc-continue').addEventListener('click', () => {
   storyCard.classList.add('hidden');
   if (storyCard.dataset.finaleNext === '1') {
     finaleShown = true;
-    localStorage.setItem('baronisland-finale', '1');
+    localStorage.setItem('oatmeal-finale', '1');
     finaleEl.querySelector('.sc-prompt').textContent = FINALE_LINE;
     finaleEl.classList.remove('hidden');
   } else {
@@ -304,6 +311,44 @@ $('fin-continue').addEventListener('click', () => { finaleEl.classList.add('hidd
 $('card-close').addEventListener('click', resumeFlight);
 $('play-mission').addEventListener('click', () => focused && openMinigame(focused));
 $('mg-quit').addEventListener('click', () => { closeMinigame(); if (focused) showMomentCard(focused); });
+// ---------- raffle shelf ----------
+const pzModal = $('prizes-modal');
+function renderPrizes() {
+  pzModal.querySelector('.pz-sub').textContent = `you have ${tickets} tickets`;
+  pzModal.querySelector('.pz-note').textContent = RAFFLE_NOTE + ' · demo — entries are illustrative';
+  const list = $('pz-list');
+  list.innerHTML = '';
+  for (const p of PRIZES) {
+    const item = document.createElement('div');
+    item.className = 'pz-item';
+    const entered = raffleEntries.has(p.id);
+    item.innerHTML = `
+      <div class="pz-icon">${p.icon}</div>
+      <div class="pz-info"><div class="pz-name">${p.name}</div><div class="pz-desc">${p.note}</div></div>
+      <div class="pz-cost">${p.cost} 🎟</div>`;
+    const btn = document.createElement('button');
+    btn.className = 'pz-enter' + (entered ? ' entered' : '');
+    btn.textContent = entered ? 'ENTERED ✓' : 'ENTER';
+    btn.disabled = !entered && tickets < p.cost;
+    btn.addEventListener('click', () => {
+      if (raffleEntries.has(p.id) || tickets < p.cost) return;
+      tickets -= p.cost;
+      raffleEntries.add(p.id);
+      localStorage.setItem('oatmeal-entries', JSON.stringify([...raffleEntries]));
+      saveTickets();
+      renderCounters();
+      renderPrizes();
+      AUDIO.winFanfare();
+    });
+    item.appendChild(btn);
+    list.appendChild(item);
+  }
+}
+function openPrizes() { renderPrizes(); pzModal.classList.remove('hidden'); }
+$('prizes-btn').addEventListener('click', openPrizes);
+$('ticket-count').addEventListener('click', openPrizes);
+$('pz-close').addEventListener('click', () => pzModal.classList.add('hidden'));
+
 $('mute-btn').addEventListener('click', () => {
   AUDIO.initAudio();
   $('mute-btn').textContent = AUDIO.toggleMute() ? '♪̶' : '♪';
@@ -327,8 +372,8 @@ function setLowerThird(L) {
 // ---------- labels projection ----------
 const projTmp = new THREE.Vector3();
 function updateLabels() {
-  const overlayOpen = mode === 'intro' || !mg.classList.contains('hidden') ||
-    !storyCard.classList.contains('hidden') || !finaleEl.classList.contains('hidden');
+  const overlayOpen = mode === 'intro' || !storyCard.classList.contains('hidden') ||
+    !finaleEl.classList.contains('hidden') || !pzModal.classList.contains('hidden');
   marks.landmarks.forEach((L, i) => {
     const e = labelEls[i];
     if (overlayOpen) { e.style.opacity = '0'; return; }
@@ -347,8 +392,8 @@ function updateLabels() {
 const cafePos = new THREE.Vector3(island.palmCourt.x, island.palmCourt.ground + 9, island.palmCourt.z);
 let lastMelody = -30;
 function updateCafe() {
-  const overlayOpen = mode === 'intro' || !mg.classList.contains('hidden') ||
-    !storyCard.classList.contains('hidden') || !finaleEl.classList.contains('hidden');
+  const overlayOpen = mode === 'intro' || !storyCard.classList.contains('hidden') ||
+    !finaleEl.classList.contains('hidden') || !pzModal.classList.contains('hidden');
   projTmp.copy(cafePos);
   const dist = projTmp.distanceTo(camera.position);
   projTmp.project(camera);
@@ -387,8 +432,8 @@ function checkPickups(t) {
     if (b.obj.position.distanceToSquared(flight.pos) < 42) {
       b.popped = true;
       b.poppedAt = t;
-      balloonsPopped++;
-      localStorage.setItem('baronisland-balloons', String(balloonsPopped));
+      tickets += TICKETS_PER_BALLOON;
+      saveTickets();
       renderCounters();
       AUDIO.balloonPop();
     }
@@ -508,7 +553,7 @@ frame();
 // debug/testing hooks
 window.baronWorld = {
   skipIntro: endIntro,
-  state: () => ({ mode, pos: flight.pos.toArray().map(v => Math.round(v)), autopilot: flight.autopilot, unlocked: [...unlocked], balloons: balloonsPopped }),
+  state: () => ({ mode, pos: flight.pos.toArray().map(v => Math.round(v)), autopilot: flight.autopilot, unlocked: [...unlocked], tickets }),
   flyTo: (id) => {
     endIntro();
     const L = marks.landmarks.find(l => l.def.id === id);

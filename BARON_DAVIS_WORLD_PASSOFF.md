@@ -1,4 +1,4 @@
-# Baron Island Passoff
+# Bart Oatmeal Island Passoff
 
 Last updated: July 5, 2026 (evening)
 
@@ -16,10 +16,20 @@ https://www.youtube.com/watch?v=Rb0KONWs4kI&t=30s
 Calm, warm, toy-scale, alive. You are in the air. The world is a place you drift over,
 not a menu you click through.
 
+## Who Bart Oatmeal Is (July 5 rebrand)
+
+**Bart Oatmeal is Baron Davis's rapper alter-ego and metaverse character** (ESPN,
+Okayplayer). The real ecosystem grounds the world: **Oatmeal Radio Café** at 4859 W
+Jefferson Blvd LA (coffee + streaming studio + venue; mission: prison reform & foster
+care reform, "barista A&Rs → managers → owners"), **SLIC Studios** (where he records),
+the **STEELCUT** albums, and Business Inside the Game. The island is his world; the
+five moments are still Baron's evidence-backed life arc.
+
 ## What Exists Now (the current build)
 
-`index.html` + `src/` at the repo root is **Baron Island** — a browser-playable Three.js
-flyover world, built July 5, 2026 and verified end-to-end in desktop and mobile viewports.
+`index.html` + `src/` at the repo root is **BART OATMEAL** — a browser-playable Three.js
+island flyover, verified end-to-end in desktop and mobile viewports.
+Live at https://jack-more.github.io/baron-island/
 
 The experience:
 
@@ -35,7 +45,16 @@ The experience:
   Summit Tower (B.I.G. / investor chapter) on the mountain shoulder.
 - A **gold ring** floats over each landmark. Fly through it → the plane circles the
   landmark while a moment card opens → play that moment's **sponsored mini-game** →
-  win unlocks the era's interview prompt (from `players/baron_davis.json`) and a star.
+  win unlocks the era's interview prompt (from `players/baron_davis.json`), a star,
+  and **raffle tickets**.
+- **Split-screen mini-games with real graphics**: the island keeps flying on the left;
+  the game panel docks right. First Shot is a drawn court scene (hoop, net, kid, ball
+  arc animation); Drop the Beat is a spinning STEELCUT vinyl with a pulse ring and
+  equalizer; Fix the Tape uses drawn cassette cards.
+- **Raffle economy**: game wins = +5 tickets (+2 replays), balloons = +1 each. The
+  Raffle Shelf (🎁 in the HUD) lists real-feeling prizes — game-worn signed jersey,
+  signed STEELCUT vinyl, Radio Café merch box, SLIC studio session — with ticket
+  costs and an ENTER flow. Raffle proceeds framing: the café's reform mission.
 - **Sponsored mini-games**: every mini-game carries a "PRESENTED BY <sponsor>" slot,
   filled with placeholder inventory from Baron's real portfolio (Super Coffee, Tracklib,
   Sleeper, Thrive, B.I.G. — per the U.S. Chamber interview evidence). The blimp banner is
@@ -140,6 +159,8 @@ good; ignore any *interaction* language in it (walking, deliveries, click-to-wal
 
 - Four benign "gradientMap has value of undefined" console warnings at startup
   (cosmetic; materials render correctly).
+- Sign the Board still DOM-only; could get a drawn plaza scene like Shot/Beat.
+- Raffle entries are demo-only (localStorage); a real raffle needs a backend + rules.
 
 - Second sponsor surface pass: rotating blimp banners, ring-sponsor tie-ins.
 - Balloon pop particle burst (currently scale/fade-out).

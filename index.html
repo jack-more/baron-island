@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Baron Island — a flyover world</title>
+<title>BART OATMEAL — an island world</title>
 <link rel="stylesheet" href="styles.css">
 <script type="importmap">
 {
@@ -20,9 +20,9 @@
 <!-- Title / intro overlay -->
 <div id="title-overlay">
   <div class="title-block">
-    <div class="title-eyebrow">A PLAYER WORLD BY BARON DAVIS</div>
-    <h1 class="title-main">BARON<br>ISLAND</h1>
-    <div class="title-sub">fly through a life</div>
+    <div class="title-eyebrow">A BARON DAVIS ALTER-EGO WORLD</div>
+    <h1 class="title-main">BART<br>OATMEAL</h1>
+    <div class="title-sub">fly the frequency · play the moments · win the raffle</div>
   </div>
   <button id="skip-intro" class="ghost-btn">take the controls&ensp;✈</button>
 </div>
@@ -39,10 +39,11 @@
 <!-- Persistent HUD -->
 <div id="hud" class="hidden">
   <div id="hud-top">
-    <div id="brand"><span class="brand-dot"></span> BARON ISLAND</div>
+    <div id="brand"><span class="brand-dot"></span> BART OATMEAL</div>
     <div id="hud-right">
-      <div id="balloon-count" title="balloons popped">🎈 0</div>
+      <button id="ticket-count" class="ghost-btn" title="raffle tickets — click for prizes">🎟 0</button>
       <div id="stars"></div>
+      <button id="prizes-btn" class="ghost-btn" title="raffle prizes">🎁</button>
       <button id="mute-btn" class="ghost-btn" title="sound">♪</button>
     </div>
   </div>
@@ -103,5 +104,19 @@
 </div>
 
 <script type="module" src="src/main.js"></script>
+<!-- Raffle prize shelf -->
+<div id="prizes-modal" class="hidden">
+  <div class="pz-frame">
+    <div class="pz-head">
+      <div>
+        <div class="pz-title">THE RAFFLE SHELF</div>
+        <div class="pz-sub"></div>
+      </div>
+      <button id="pz-close" class="ghost-btn">✕</button>
+    </div>
+    <div id="pz-list"></div>
+    <div class="pz-note"></div>
+  </div>
+</div>
 </body>
 </html>

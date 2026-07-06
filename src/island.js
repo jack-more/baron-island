@@ -94,7 +94,7 @@ function buildTerrain() {
       const rockiness = Math.max(sm(0.8, 1.25, slope), sm(26, 38, h));
       tmp.lerp(rockC.clone().lerp(dirt, n * 0.4), rockiness);
       // faint illustrated contour bands
-      if (rockiness < 0.45 && Math.sin(h * 1.85) > 0.82) tmp.multiplyScalar(1.055);
+      if (rockiness < 0.45 && Math.sin(h * 1.85) > 0.78) tmp.multiplyScalar(1.08);
     }
     colors[i * 3] = tmp.r; colors[i * 3 + 1] = tmp.g; colors[i * 3 + 2] = tmp.b;
   }
@@ -163,7 +163,7 @@ function buildRoad(curve) {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const mat = P.toon(0xe6d3a3);
+  const mat = P.toon(0xefd9a0);
   mat.userData.outlineParameters = { visible: false };
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
@@ -172,7 +172,7 @@ function buildRoad(curve) {
 
 function scatter(root, roadSamples) {
   const placed = [];
-  for (let i = 0; i < 340; i++) {
+  for (let i = 0; i < 560; i++) {
     const a = Math.random() * Math.PI * 2;
     const r = Math.sqrt(Math.random()) * (ISLAND_R * 0.96);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -192,6 +192,8 @@ function scatter(root, roadSamples) {
       1.1 + Math.random() * 0.7, 1.2 + Math.random() * 0.9,
       ['#f6ead2', '#ffd9c2', '#d9ecf2'][i % 3],
       [0xffc83d, 0xe0483e, 0x5fa8c9, 0x9a6bff][i % 4]);
+    else if (Math.random() < 0.16) obj = P.flowerPatch(1.6 + Math.random() * 1.6);
+    else if (Math.random() < 0.14) obj = P.bush(1.6 + Math.random(), [0x4f9c58, 0x5eab63, 0x3f8f6a][i % 3]);
     else if (Math.random() < 0.1) obj = P.house(1.4 + Math.random(), 1.0, 1.3,
       [0xf2d8b0, 0xbfd9c9, 0xf6e2c4, 0xd9b8a8][i % 4], [0xc95f45, 0x8a6b4a, 0x5f7ea8][i % 3]);
     else obj = P.tree(1.4 + Math.random() * 1.7, [0x5eab63, 0x6fbf74, 0x4f9c58, 0x77c46a][i % 4]);
