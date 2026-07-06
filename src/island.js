@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { LANDMARKS } from './data.js';
 import * as P from './props.js';
+import { getHifi, hasHifi } from './assets.js';
 
 export const PLANET_R = 110;
 const _up = new THREE.Vector3(0, 1, 0);
@@ -197,6 +198,7 @@ function buildRoad(curve) {
 
 // ---------- scatter: flora everywhere, ESTATES on the hills ----------
 function scatter(root, roadSamples) {
+  const placed = [];
   const _p = new THREE.Vector3();
   let estates = 0;
   for (let i = 0; i < 900; i++) {
@@ -214,11 +216,15 @@ function scatter(root, roadSamples) {
     else if (h < 1.6) obj = P.palm(1.9 + Math.random() * 1.3);
     else if (roll < 0.3) obj = P.flowerPatch(1.5 + Math.random() * 1.5);
     else if (roll < 0.42) obj = P.bush(1.5 + Math.random(), [0x4f9c58, 0x5eab63, 0x3f8f6a][i % 3]);
-    else if (roll < 0.5) obj = P.domeBuilding(1.0 + Math.random() * 0.6, 1.1 + Math.random() * 0.8,
-      ['#f6ead2', '#ffd9c2', '#d9ecf2'][i % 3], [0xffc83d, 0xe0483e, 0x5fa8c9, 0x9a6bff][i % 4]);
+    else if (roll < 0.5) {
+      const kinds = ['building_A', 'building_B', 'building_C', 'building_D'];
+      obj = getHifi(kinds[i % 4], 5 + Math.random() * 3) || P.domeBuilding(1.0 + Math.random() * 0.6, 1.1 + Math.random() * 0.8,
+        ['#f6ead2', '#ffd9c2', '#d9ecf2'][i % 3], [0xffc83d, 0xe0483e, 0x5fa8c9, 0x9a6bff][i % 4]);
+    }
     else obj = P.tree(1.3 + Math.random() * 1.6, [0x5eab63, 0x6fbf74, 0x4f9c58, 0x77c46a][i % 4]);
-    placeOnPlanet(root, obj, n, 0, 0, Math.random() * Math.PI * 2);
+    placed.push(placeOnPlanet(root, obj, n, 0, 0, Math.random() * Math.PI * 2));
   }
+  return placed;
 }
 
 // dense Bel-Air ridge: terraced estates
@@ -243,7 +249,7 @@ export function buildIsland(scene) {
   const roadCurve = buildRoadCurve();
   const road = buildRoad(roadCurve);
   root.add(road.mesh);
-  scatter(root, road.samples.filter((_, i) => i % 5 === 0));
+  const scatterObjs = scatter(root, road.samples.filter((_, i) => i % 5 === 0));
   buildHills(root);
 
   // Palm Court — organized grove + Radio Café cove
@@ -280,6 +286,20 @@ export function buildIsland(scene) {
       root.add(sp);
       notes.push({ sp, base: radioWorld.clone(), up: upDir, phase: k * 1.7 });
     }
+  }
+
+  // the old seaplane, retired and parked in the cove
+  {
+    const plane = P.seaplane();
+    plane.scale.setScalar(1.4);
+    placeOnPlanet(root, plane, PALM_COURT_N, -14, 10, 2.2, 0.6);
+  }
+
+  // the old seaplane, retired and parked in the cove
+  {
+    const plane = P.seaplane();
+    plane.scale.setScalar(1.4);
+    placeOnPlanet(root, plane, PALM_COURT_N, -14, 10, 2.2, 0.6);
   }
 
   // Oatmeal House islet
@@ -336,7 +356,15 @@ export function buildIsland(scene) {
   }
 
   const _cw = new THREE.Vector3();
+  let fadeTick = 0;
   function update(t, dt, camPos) {
+    // hide scatter props that would swallow the chase camera
+    if (camPos && (fadeTick -= dt) <= 0) {
+      fadeTick = 0.12;
+      for (const o of scatterObjs) {
+        o.visible = o.position.distanceToSquared(camPos) > 30;
+      }
+    }
     for (const c of clouds) {
       c.pivot.rotateY(c.speed * dt);
       if (camPos) {

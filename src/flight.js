@@ -1,36 +1,59 @@
-// Spherical flight: the seaplane flies around a full globe. Position is a world
-// vector; heading is a unit tangent that parallel-transports as the plane moves.
-// Local up is always away from the planet core — the world wraps, no edges.
+// Third-person walker — 2K-lobby feel on a full globe. The avatar walks perpetually
+// (auto-forward), you steer; jog with space; it even walks on water, leaving ripples.
+// Class keeps the old Flight name/API so the app shell stays unchanged.
 import * as THREE from 'three';
-import { PLANET_R, heightField, clearanceRadius } from './island.js';
+import { PLANET_R, heightField } from './island.js';
+import { getHifi, getAnimations } from './assets.js';
 import * as P from './props.js';
 
 export class Flight {
   constructor(scene) {
     this.group = new THREE.Group();
-    this.plane = P.seaplane();
-    this.group.add(this.plane);
-
-    this.banner = P.towBanner('BART OATMEAL');
-    this.cloth = this.banner.getObjectByName('cloth');
-    this.group.add(this.banner);
-
     scene.add(this.group);
 
-    this.pos = new THREE.Vector3(0.2, 0.35, 1).normalize().multiplyScalar(PLANET_R + 55);
+    // character: hi-fi rigged GLB when available, procedural fallback otherwise
+    this.mixer = null;
+    this.actions = {};
+    this.currentAction = null;
+    const hifi = getHifi('character', 2.8);
+    if (hifi) {
+      this.character = hifi;
+      this.character.rotation.y = Math.PI; // KayKit faces +Z; we travel -Z
+      // street clothes only: strip the adventure-pack weapons
+      this.character.traverse(o => {
+        if (/dagger|sword|axe|bow|shield|knife|blade|arrow|quiver|crossbow|smokebomb|spellbook|staff/i.test(o.name)) o.visible = false;
+      });
+      this.group.add(this.character);
+      this.mixer = new THREE.AnimationMixer(this.character);
+      const clips = getAnimations('character');
+      const find = (re) => clips.find(c => re.test(c.name));
+      const idle = find(/idle/i) || clips[0];
+      const walk = find(/walk/i) || idle;
+      const run = find(/run|sprint|jog/i) || walk;
+      if (idle) this.actions.idle = this.mixer.clipAction(idle);
+      if (walk) this.actions.walk = this.mixer.clipAction(walk);
+      if (run) this.actions.run = this.mixer.clipAction(run);
+      if (this.actions.idle) { this.actions.idle.play(); this.currentAction = this.actions.idle; }
+    } else {
+      this.character = P.kid(0x8a5a3b, 0x2b6fd4);
+      this.character.scale.setScalar(3.2);
+      this.group.add(this.character);
+    }
+
+    this.pos = new THREE.Vector3(0.2, 0.35, 1).normalize();
+    this.pos.multiplyScalar(PLANET_R + Math.max(heightField(this.pos.clone().normalize()), 0.45));
     this.heading = new THREE.Vector3(1, 0, 0);
-    this.pitch = 0;          // climb angle
-    this.roll = 0;
-    this.speed = 26;
-    this.baseSpeed = 26;
-    this.boostSpeed = 46;
+    this.speed = 0;
+    this.walkSpeed = 5.2;
+    this.jogSpeed = 10.5;
     this.steer = { x: 0, y: 0, boost: false };
 
     this.autopilot = true;
     this.apTarget = this.pos.clone();
-    this.apOrbit = null;     // {anchor: unit Vector3, radius (arc len), height (above sea)}
+    this.apOrbit = null;      // {anchor, radius}
 
-    this.landed = false;
+    this.landed = false;      // legacy flag (kept false; walker never "lands")
+    this.onWater = false;
     this.events = [];
 
     this._upv = new THREE.Vector3();
@@ -41,23 +64,27 @@ export class Flight {
 
   up(out) { return (out || this._upv).copy(this.pos).normalize(); }
   forward(out) { return out.copy(this.heading); }
-  get altitude() { return this.pos.length() - PLANET_R; }
+  get altitude() { return 0; }
 
-  // signed steering toward a world point, using the local tangent plane
   _steerToward(target, up) {
     const to = this._tmp.copy(target).sub(this.pos);
-    const vertical = to.dot(up);
-    to.addScaledVector(up, -vertical);
+    to.addScaledVector(up, -to.dot(up));
     const dist = to.length();
     if (dist > 0.001) to.divideScalar(dist);
-    const right = new THREE.Vector3().crossVectors(up, this.heading).negate();
+    const right = new THREE.Vector3().crossVectors(this.heading, up).normalize();
     const turn = to.dot(right);
     const ahead = to.dot(this.heading);
-    let x = THREE.MathUtils.clamp(turn * 2.2, -1, 1);
-    if (ahead < -0.2) x = x >= 0 ? 1 : -1; // target behind: commit to the turn
-    const targetAlt = target.length() - PLANET_R;
-    const y = THREE.MathUtils.clamp((targetAlt - this.altitude) * 0.14 - this.pitch * 1.2, -1, 1);
-    return { x, y, boost: dist > 120 };
+    let x = THREE.MathUtils.clamp(turn * 2.6, -1, 1);
+    if (ahead < -0.2) x = x >= 0 ? 1 : -1;
+    return { x, y: 1, boost: dist > 60 };
+  }
+
+  _setAction(name, fade = 0.25) {
+    const next = this.actions[name];
+    if (!next || next === this.currentAction) return;
+    next.reset().fadeIn(fade).play();
+    if (this.currentAction) this.currentAction.fadeOut(fade);
+    this.currentAction = next;
   }
 
   update(dt, t) {
@@ -67,110 +94,55 @@ export class Flight {
     if (this.autopilot) {
       if (this.apOrbit) {
         const o = this.apOrbit;
-        // aim at a point ahead on the circle around the anchor
         const rel = this.pos.clone().normalize();
         const e = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), o.anchor).normalize();
         const f = new THREE.Vector3().crossVectors(o.anchor, e).normalize();
         const cur = Math.atan2(rel.dot(e), rel.dot(f));
-        const ang = cur + 0.55;
-        const theta = o.radius / PLANET_R;
+        const ang = cur + 0.6;
+        const theta = (o.radius || 16) / PLANET_R;
         const dir = o.anchor.clone().multiplyScalar(Math.cos(theta))
           .addScaledVector(e, Math.sin(theta) * Math.sin(ang))
           .addScaledVector(f, Math.sin(theta) * Math.cos(ang))
           .normalize();
-        const tgt = dir.multiplyScalar(PLANET_R + o.height);
-        s = this._steerToward(tgt, up);
+        s = this._steerToward(dir.multiplyScalar(PLANET_R), up);
         s.boost = false;
       } else {
         s = this._steerToward(this.apTarget, up);
       }
     }
 
-    const overWater = heightField(this.pos.clone().normalize()) < -0.2;
+    // steer + perpetual walk
+    this.heading.applyAxisAngle(up, -s.x * 2.4 * dt);
+    let targetSpeed = this.walkSpeed;
+    if (s.boost || s.y > 0.4) targetSpeed = this.jogSpeed;
+    if (s.y < -0.4) targetSpeed = 0; // pull back to stand still
+    this.speed += (targetSpeed - this.speed) * Math.min(1, 6 * dt);
 
-    if (this.landed) {
-      // taxi on the sea surface
-      this.pitch += (0 - this.pitch) * Math.min(1, 5 * dt);
-      const targetRoll = -s.x * 0.28 + Math.sin(t * 1.6) * 0.02;
-      this.roll += (targetRoll - this.roll) * Math.min(1, 5 * dt);
-      this.heading.applyAxisAngle(up, -s.x * 0.9 * dt);
-      const taxiTarget = s.boost ? 34 : 7;
-      this.speed += (taxiTarget - this.speed) * Math.min(1, (s.boost ? 0.9 : 1.8) * dt);
-      this.pos.addScaledVector(this.heading, this.speed * dt);
-      this.pos.setLength(PLANET_R + 1.25 + Math.sin(t * 2.1) * 0.08);
-      if (this.speed > 27) {
-        this.landed = false;
-        this.pitch = 0.22;
-        this.events.push('takeoff');
-      }
-      const aheadN = this.pos.clone().addScaledVector(this.heading, 6).normalize();
-      if (heightField(aheadN) > -0.4) {
-        this.landed = false;
-        this.pitch = 0.3;
-        this.speed = Math.max(this.speed, 22);
-        this.events.push('hop');
-      }
-    } else {
-      // airborne
-      const targetRoll = -s.x * 0.85;
-      this.roll += (targetRoll - this.roll) * Math.min(1, 5 * dt);
-      this.heading.applyAxisAngle(up, -s.x * 1.05 * dt * (this.speed / this.boostSpeed + 0.55));
-      const targetPitch = THREE.MathUtils.clamp(s.y, -1, 1) * 0.5;
-      this.pitch += (targetPitch - this.pitch) * Math.min(1, 3.2 * dt);
+    this.pos.addScaledVector(this.heading, this.speed * dt);
+    const n = this.pos.clone().normalize();
+    const h = heightField(n);
+    this.onWater = h < 0.1;
+    this.pos.copy(n).multiplyScalar(PLANET_R + Math.max(h, 0.45));
 
-      const targetSpeed = s.boost ? this.boostSpeed : this.baseSpeed;
-      this.speed += (targetSpeed - this.speed) * Math.min(1, 1.6 * dt);
-
-      this.pos.addScaledVector(this.heading, this.speed * Math.cos(this.pitch) * dt);
-      this.pos.addScaledVector(up, this.speed * Math.sin(this.pitch) * dt);
-
-      if (overWater && !this.autopilot) {
-        if (this.altitude <= 1.45) {
-          this.landed = true;
-          this.pos.setLength(PLANET_R + 1.25);
-          this.roll *= 0.3;
-          this.events.push('splash');
-        }
-      } else {
-        const floorR = clearanceRadius(this.pos) + 6;
-        const r = this.pos.length();
-        if (r < floorR) {
-          this.pos.setLength(r + (floorR - r) * Math.min(1, 6 * dt));
-          this.pitch = Math.max(this.pitch, 0.06);
-        }
-      }
-      // soft ceiling
-      if (this.altitude > 55) {
-        this.pos.setLength(PLANET_R + 55 + (this.altitude - 55) * Math.max(0, 1 - 2 * dt));
-        this.pitch = Math.min(this.pitch, 0);
-      }
-    }
-
-    // re-orthogonalize heading to the sphere at the new position
+    // re-orthogonalize heading
     const newUp = this.up(new THREE.Vector3());
     this.heading.addScaledVector(newUp, -this.heading.dot(newUp)).normalize();
 
-    // pose: nose (-Z) along heading, +Y along local up; then pitch and roll
+    // pose
     this._right.crossVectors(this.heading, newUp).normalize();
     this._m.makeBasis(this._right, newUp, this.heading.clone().negate());
     this.group.quaternion.setFromRotationMatrix(this._m);
-    this.group.rotateX(this.pitch);
-    this.group.rotateZ(this.roll);
     this.group.position.copy(this.pos);
-    if (!this.landed) this.group.position.addScaledVector(newUp, Math.sin(t * 1.8) * 0.15);
 
-    const prop = this.plane.getObjectByName('prop');
-    prop.rotation.z += dt * (this.landed ? 6 + this.speed * 0.5 : 18 + this.speed * 0.6);
-
-    this.banner.position.set(0, this.landed ? 0.45 : -0.55, 4.9);
-    const bp = this.cloth.geometry.attributes.position;
-    const base = this.cloth.userData.basePos;
-    for (let i = 0; i < bp.count; i++) {
-      const bx = base[i * 3];
-      const wave = Math.sin(t * 6 + bx * 1.4) * 0.16 * (0.25 + (bx + 1.7) / 3.4);
-      bp.setZ(i, base[i * 3 + 2] + wave);
-      bp.setY(i, base[i * 3 + 1] + wave * 0.5);
+    // animation
+    if (this.mixer) {
+      if (this.speed < 1) this._setAction('idle');
+      else if (this.speed < this.walkSpeed + 1.5) this._setAction('walk');
+      else this._setAction('run');
+      this.mixer.update(dt);
+    } else {
+      // procedural bob for the fallback character
+      this.group.position.addScaledVector(newUp, this.speed > 1 ? Math.abs(Math.sin(t * 8)) * 0.14 : 0);
     }
-    bp.needsUpdate = true;
   }
 }

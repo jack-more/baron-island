@@ -39,10 +39,11 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 Highlights:
 
-- Semi-ambient attract mode: no input → the plane tours the island on autopilot
-- Bank-to-turn flight (drag / WASD / arrows, shift to boost), no fail states
-- Five landmarks, five sponsored mini-games, five interview-prompt unlocks
-- Pop-balloons, sponsor blimp, sailboats, gulls, synthesized ambient audio
+- Third-person walkable world (2K-lobby feel) on a full globe — rigged, animated character
+- Perpetual-walk attract mode: no input → the character tours the world on its own
+- Hi-fi asset system: drop GLB packs into `assets/world/`, map in `src/assets.js` MANIFEST
+- Five landmark gates (gold ring + light beam), five sponsored mini-games, raffle tickets
+- Walks on water with ripple trails; balloons, sponsor blimp, synthesized ambient audio
 - Progress persists in localStorage; `baronWorld.reset()` in the console clears it
 
 See `BARON_DAVIS_WORLD_PASSOFF.md` for the feel bar and architecture.

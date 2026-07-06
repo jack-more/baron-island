@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { LANDMARKS } from './data.js';
 import { PLANET_R, ANCHORS, heightField, placeOnPlanet, tangentFrame } from './island.js';
 import * as P from './props.js';
+import { getHifi } from './assets.js';
 
 // per-landmark placement helper: (obj, dx, dz, rotY, lift) in the anchor's tangent frame
 function makePut(root, anchorN) {
@@ -88,12 +89,16 @@ function buildDowntown(put) {
   const arena = P.arena(1.0, 0xe6e0d2, 0xd8d3c6, 0xe0483e, 'LA');
   arena.scale.setScalar(2.4);
   put(arena, -5, 5, -0.6);
-  const t1 = P.towerBlock(1.5, 4.6, 1.5, '#8fa3bd', '#ffe9b8', 9, 3);
-  t1.scale.setScalar(2.6);
+  const t1 = getHifi('building_H', 12) || (() => { const b = P.towerBlock(1.5, 4.6, 1.5, '#8fa3bd', '#ffe9b8', 9, 3); b.scale.setScalar(2.6); return b; })();
   put(t1, 7, -7, 0.3);
-  const t2 = P.towerBlock(1.3, 3.4, 1.3, '#a8b8cf', '#ffe9b8', 7, 3);
-  t2.scale.setScalar(2.6);
+  const t2 = getHifi('building_E', 9) || (() => { const b = P.towerBlock(1.3, 3.4, 1.3, '#a8b8cf', '#ffe9b8', 7, 3); b.scale.setScalar(2.6); return b; })();
   put(t2, 11, -1, 0.8);
+  const t3 = getHifi('building_B', 7);
+  if (t3) put(t3, 15, -5, 1.2);
+  const bench = getHifi('bench', 1.1);
+  if (bench) put(bench, -1, 4.5, 0.8);
+  const hyd = getHifi('hydrant', 0.9);
+  if (hyd) put(hyd, 2.5, 4.8, 0);
   put(P.domeBuilding(2.6, 3.2, '#f6ead2', 0xffc83d), 3, -12, -0.2);
   put(P.domeBuilding(1.8, 2.2, '#d9ecf2', 0xe0483e), 13, -8, 0.5);
   put(P.palm(2.2), 1, 10);
@@ -153,9 +158,9 @@ export function buildLandmarks(scene, roadCurve) {
     const anchorN = ANCHORS[def.id];
     const put = makePut(root, anchorN);
     Object.assign(animated, BUILDERS[def.id](put) || {});
-    // mission ring floats above the landmark
-    const ring = P.goldRing(7);
-    const ringR = PLANET_R + def.ground + 14;
+    // mission gate: a walk-through ring at ground level + a 2K-style light beam
+    const ring = P.goldRing(3);
+    const ringR = PLANET_R + Math.max(def.ground, 0.45) + 3.0;
     ring.position.copy(anchorN).multiplyScalar(ringR);
     const { e } = tangentFrame(anchorN);
     const m = new THREE.Matrix4().makeBasis(
@@ -166,6 +171,13 @@ export function buildLandmarks(scene, roadCurve) {
     ring.quaternion.setFromRotationMatrix(m);
     ring.userData.normal = e.clone(); // pickup plane normal
     root.add(ring);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xffd98a, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.9, 34, 18, 1, true), beamMat);
+    beam.position.copy(anchorN).multiplyScalar(PLANET_R + Math.max(def.ground, 0.45) + 17);
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), anchorN);
+    root.add(beam);
     return {
       def, ring,
       anchor: anchorN,
@@ -180,7 +192,7 @@ export function buildLandmarks(scene, roadCurve) {
     const n = new THREE.Vector3().randomDirection();
     const b = P.starBalloon([0xffc83d, 0xff7a4d, 0x9a6bff, 0x4d7dff, 0xe0483e][i % 5]);
     b.scale.setScalar(2.0);
-    const alt = 6 + Math.random() * 16;
+    const alt = 3.4 + Math.random() * 2.6;
     b.position.copy(n).multiplyScalar(PLANET_R + Math.max(heightField(n), 0) + alt);
     b.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
     root.add(b);
@@ -198,10 +210,11 @@ export function buildLandmarks(scene, roadCurve) {
   blimpObj.rotation.x = Math.PI / 2;
 
   const cars = [0, 0.2, 0.45, 0.7, 0.9].map((offset, i) => {
-    const c = i % 2 ? P.sportsCar([0xe0483e, 0xffc83d, 0x1d2430][i % 3], 2.0) : P.capsuleCar([0x2b6fd4, 0x3f8f6a][i % 2]);
-    if (!(i % 2)) c.scale.setScalar(2.2);
+    const hifiCar = getHifi(i % 2 ? 'car_sedan' : 'car_hatchback', 1.8);
+    const c = hifiCar || (i % 2 ? P.sportsCar([0xe0483e, 0xffc83d, 0x1d2430][i % 3], 2.0) : P.capsuleCar([0x2b6fd4, 0x3f8f6a][i % 2]));
+    if (!hifiCar && !(i % 2)) c.scale.setScalar(2.2);
     root.add(c);
-    return { obj: c, offset, speed: 0.004 + (i % 2) * 0.0012, hover: !(i % 2) };
+    return { obj: c, offset, speed: 0.004 + (i % 2) * 0.0012, hover: false, flip: !!hifiCar };
   });
 
   const _p = new THREE.Vector3();
@@ -237,7 +250,7 @@ export function buildLandmarks(scene, roadCurve) {
     for (const car of cars) {
       const tt = (t * car.speed + car.offset) % 1;
       roadCurve.getPoint(tt, _p).normalize();
-      const r = PLANET_R + Math.max(heightField(_p), 0.15) + (car.hover ? 0.9 + Math.sin(t * 3 + car.offset * 20) * 0.15 : 0.35);
+      const r = PLANET_R + Math.max(heightField(_p), 0.15) + 0.3;
       const pos = _p.clone().multiplyScalar(r);
       roadCurve.getPoint((tt + 0.002) % 1, _ahead).normalize().multiplyScalar(r);
       car.obj.position.copy(pos);
@@ -246,6 +259,7 @@ export function buildLandmarks(scene, roadCurve) {
       const right = new THREE.Vector3().crossVectors(fwd, upC).normalize();
       const m = new THREE.Matrix4().makeBasis(right, upC, fwd.clone().negate());
       car.obj.quaternion.setFromRotationMatrix(m);
+      if (car.flip) car.obj.rotateY(Math.PI);
     }
   }
 

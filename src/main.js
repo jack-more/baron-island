@@ -8,6 +8,7 @@ import { buildIsland, surfaceRadiusAt, heightField, PLANET_R, ANCHORS, tangentFr
 import { buildLandmarks } from './landmarks.js';
 import { Flight } from './flight.js';
 import { startMinigame } from './minigames.js';
+import { loadHifi } from './assets.js';
 import * as AUDIO from './audio.js';
 
 // ---------- renderer / scene ----------
@@ -79,7 +80,8 @@ sunDisc.position.copy(sunDir).multiplyScalar(1400);
 sunDisc.lookAt(0, 0, 0);
 scene.add(sunDisc);
 
-// ---------- world ----------
+// ---------- world (hi-fi assets first; fallbacks fill any gaps) ----------
+await loadHifi();
 const island = buildIsland(scene);
 const marks = buildLandmarks(scene, island.roadCurve);
 const flight = new Flight(scene);
@@ -148,7 +150,7 @@ function renderCounters() {
 }
 renderCounters();
 if (window.innerWidth < 640 || 'ontouchstart' in window) {
-  $('hint').textContent = 'drag to steer · fly through a gold ring';
+  $('hint').textContent = 'drag to walk · step through a gold ring';
 }
 
 // ---------- flight input ----------
@@ -164,11 +166,11 @@ function computeSteer() {
   const s = { x: 0, y: 0, boost: keys.has('Space') || keys.has('ShiftLeft') || keys.has('ShiftRight') };
   if (keys.has('KeyA') || keys.has('ArrowLeft')) s.x -= 1;
   if (keys.has('KeyD') || keys.has('ArrowRight')) s.x += 1;
-  if (keys.has('KeyW') || keys.has('ArrowUp')) s.y -= 1;   // inverted: up = dive
-  if (keys.has('KeyS') || keys.has('ArrowDown')) s.y += 1; // down = climb
+  if (keys.has('KeyW') || keys.has('ArrowUp')) s.y += 1;   // jog
+  if (keys.has('KeyS') || keys.has('ArrowDown')) s.y -= 1;  // stop
   if (pointerSteer) {
     s.x += THREE.MathUtils.clamp(pointerSteer.x / (window.innerWidth * 0.22), -1, 1);
-    s.y += THREE.MathUtils.clamp(pointerSteer.y / (window.innerHeight * 0.22), -1, 1);
+    s.y += THREE.MathUtils.clamp(-pointerSteer.y / (window.innerHeight * 0.22), -1, 1);
     s.x = THREE.MathUtils.clamp(s.x, -1, 1);
     s.y = THREE.MathUtils.clamp(s.y, -1, 1);
   }
@@ -241,7 +243,7 @@ function enterMoment(L) {
   AUDIO.ringChime();
   tourChip.classList.add('hidden');
   flight.autopilot = true;
-  flight.apOrbit = { anchor: L.anchor.clone(), radius: 42, height: L.def.ground + 18 };
+  flight.apOrbit = { anchor: L.anchor.clone(), radius: 21 };
   showMomentCard(L);
   setLowerThird(null);
 }
@@ -460,16 +462,14 @@ function updateWaterFx(dt) {
     fx.mesh.material.opacity = 0.75 * (1 - k);
   }
   // pontoon wake while taxiing
-  if (flight.landed && flight.speed > 3) {
+  if (flight.onWater && flight.speed > 2) {
     wakeTimer -= dt;
     if (wakeTimer <= 0) {
-      wakeTimer = 0.09;
+      wakeTimer = 0.16;
       flight.forward(_wk);
       const upW = flight.up(new THREE.Vector3());
       const side = new THREE.Vector3().crossVectors(upW, _wk);
-      for (const d of [1, -1]) {
-        spawnRing(flight.pos.clone().addScaledVector(side, 0.9 * d).addScaledVector(_wk, -1.2), 0.5, 0.55, 2.4);
-      }
+      spawnRing(flight.pos.clone().addScaledVector(_wk, -0.6), 0.4, 0.6, 2.2);
     }
   }
 }
@@ -515,7 +515,7 @@ function consumeFlightEvents() {
   }
   flight.events.length = 0;
   hintEl.textContent = flight.landed
-    ? 'taxi: A / D · hold space to throttle up and take off'
+    ? 'jogging — space to jog, S to stand still'
     : defaultHint;
 }
 
@@ -529,9 +529,9 @@ function checkPickups(t) {
       const planeN = L.ring.userData.normal;
       const dPlane = Math.abs(_d.dot(planeN));
       const dRadial = Math.sqrt(Math.max(0, _d.lengthSq() - dPlane * dPlane));
-      if (dPlane < 5 && dRadial < 9) { enterMoment(L); return; }
+      if (dPlane < 3.2 && dRadial < 4.2) { enterMoment(L); return; }
       // near-miss also counts if very close to center
-      if (_d.length() < 9) { enterMoment(L); return; }
+      if (_d.length() < 5) { enterMoment(L); return; }
     }
   }
   // balloons
@@ -562,19 +562,16 @@ function updateCamera(dt) {
     const k = Math.min(1, introT / INTRO_LEN);
     const orbitDir = new THREE.Vector3(Math.sin(k * 1.4 - 0.6), 0.55 - k * 0.25, Math.cos(k * 1.4 - 0.6)).normalize();
     const farPos = orbitDir.multiplyScalar(PLANET_R * 3.1 - k * PLANET_R * 1.9);
-    const chase = flight.pos.clone().addScaledVector(_fwd, -16).addScaledVector(upV, 6.2);
+    const chase = flight.pos.clone().addScaledVector(_fwd, -7.4).addScaledVector(upV, 3.0);
     desired = farPos.lerp(chase, k * k);
     look = new THREE.Vector3(0, 0, 0).lerp(flight.pos, k);
   } else {
-    desired = flight.pos.clone().addScaledVector(_fwd, -16).addScaledVector(upV, 6.2);
-    look = flight.pos.clone().addScaledVector(_fwd, 18);
-    if (flight.landed) {
-      desired = flight.pos.clone().addScaledVector(_fwd, -10.5).addScaledVector(upV, 3.1);
-      look = flight.pos.clone().addScaledVector(_fwd, 16).addScaledVector(upV, 1.2);
-    }
+    desired = flight.pos.clone().addScaledVector(_fwd, -7.4).addScaledVector(upV, 3.0);
+    look = flight.pos.clone().addScaledVector(_fwd, 9).addScaledVector(upV, 1.6);
     if (mode === 'moment') {
-      desired = flight.pos.clone().addScaledVector(_fwd, -22).addScaledVector(upV, 9);
-      look = focused.surface.clone().addScaledVector(focused.anchor, 6).lerp(flight.pos, 0.25);
+      // rise above the set pieces: high three-quarter view of the walker circling the moment
+      desired = flight.pos.clone().addScaledVector(_fwd, -11).addScaledVector(upV, 15);
+      look = focused.surface.clone().addScaledVector(focused.anchor, 3).lerp(flight.pos, 0.35);
     }
   }
   // keep camera above the globe surface
@@ -588,8 +585,7 @@ function updateCamera(dt) {
   camera.up.copy(_camUp);
   camera.lookAt(camLook);
   // subtle roll with the plane + boost FOV
-  camera.rotateZ(flight.roll * 0.22);
-  const targetFov = (flight.speed > 36 ? 62 : 55);
+  const targetFov = (flight.speed > 8 ? 56 : 50);
   camera.fov += (targetFov - camera.fov) * Math.min(1, 3 * dt);
   camera.updateProjectionMatrix();
 }
@@ -663,7 +659,7 @@ function frameBody(dt) {
   sunTarget.position.copy(flight.pos).setY(0);
   sun.position.copy(sunTarget.position).addScaledVector(sunDir, 260);
 
-  AUDIO.setWind(flight.landed ? 0.06 : Math.min(1, (flight.speed - 20) / 30));
+  AUDIO.setWind(Math.min(0.5, flight.speed / 22));
 
   updateCamera(dt);
   updateLabels();
@@ -689,7 +685,7 @@ window.baronWorld = {
     const L = marks.landmarks.find(l => l.def.id === id);
     if (!L) return;
     const { e } = tangentFrame(L.anchor);
-    flight.pos.copy(L.anchor).multiplyScalar(PLANET_R + L.def.ground + 20).addScaledVector(e, -55);
+    flight.pos.copy(L.anchor).multiplyScalar(PLANET_R + Math.max(L.def.ground, 0.45)).addScaledVector(e, -30);
     flight.heading.copy(e);
     flight.autopilot = true;
     flight.apOrbit = null;

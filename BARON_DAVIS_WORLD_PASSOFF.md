@@ -25,7 +25,32 @@ care reform, "barista A&Rs → managers → owners"), **SLIC Studios** (where he
 the **STEELCUT** albums, and Business Inside the Game. The island is his world; the
 five moments are still Baron's evidence-backed life arc.
 
-## DREAM-CLAY ART DIRECTION (July 6, latest)
+## WALKING WORLD + HI-FI ASSET SYSTEM (July 6, latest)
+
+**Flying is retired.** The experience is now a third-person walkable world — a 2K-lobby
+feel personalized to the player's story. A rigged, animated character (KayKit
+Adventurers "Rogue Hooded", CC0, weapons stripped) walks perpetually; you steer with
+A/D or drag, Space/W to jog, S to stand. Attract mode = the character tours the world
+on its own. He can walk on water, leaving ripple trails (dream-state). Moments are
+**ground gates**: a walk-through gold ring + a 2K-style vertical light beam at each
+landmark; step through to open the sponsored moment. Balloons float at head height.
+The old seaplane sits parked at the Radio Café cove.
+
+**Hi-fi world system** (`src/assets.js`): a manifest of GLB/GLTF assets loaded at
+boot with graceful per-asset fallback to procedural props.
+- Drop files in `assets/world/`, add a line to `MANIFEST`, use `getHifi(kind,
+  targetHeight)` at any build site (returns null → keep procedural).
+- Already wired: KayKit City Builder buildings (scatter + Downtown), bench, hydrant,
+  cars on the road, and the animated character (idle/walk/run crossfades via
+  AnimationMixer).
+- Loaders vendored: GLTFLoader, SkeletonUtils, BufferGeometryUtils (vendor/jsm/).
+- Upgrade path: any CC0/licensed pack — KayKit (GitHub), Kenney (kenney.nl),
+  Quaternius — or bespoke Blender/Meshy exports. Character swap = replace
+  `assets/world/character.glb` with any rigged GLB that has idle/walk/run clips.
+- Camera-occluding scatter props auto-hide near the camera (landmark props do not
+  yet — backlog: occlusion raycast).
+
+## DREAM-CLAY ART DIRECTION (July 6)
 
 The harsh cel/outline look is retired. Current render pipeline, in the direction of
 lego-stylized-nature (hexianWeb), Bruno Simon's infinite-world, and icurtis1's
