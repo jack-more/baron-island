@@ -470,3 +470,15 @@ html, body {
 .pz-enter.entered { background: var(--gold); color: var(--ink); }
 .pz-note { font-size: 11px; line-height: 1.5; color: rgba(29,36,48,.55); margin-top: 8px; font-style: italic; }
 #ticket-count { font-weight: 700; }
+
+#toast {
+  position: fixed; top: 15vh; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .08em;
+  background: var(--paper); color: var(--ink);
+  border: 3px solid var(--ink); border-radius: 999px;
+  padding: 12px 26px; z-index: 22;
+  box-shadow: 0 10px 30px var(--shadow);
+  animation: toastIn .4s cubic-bezier(.2,.9,.25,1) both;
+  pointer-events: none;
+}
+@keyframes toastIn { from { transform: translateX(-50%) translateY(-16px); opacity: 0; } }

@@ -122,6 +122,24 @@ export function cafeMelody() {
   seq.forEach((f, i) => setTimeout(() => pluck(f, 1.1, 0.14, 'triangle'), i * 260));
 }
 
+export function splash(big = true) {
+  if (!ctx || ctx.state !== 'running') return;
+  const len = ctx.sampleRate * 0.5;
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(big ? 1400 : 900, ctx.currentTime);
+  f.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.45);
+  const g2 = ctx.createGain();
+  g2.gain.value = big ? 0.5 : 0.28;
+  src.connect(f).connect(g2).connect(master);
+  src.start();
+}
+
 export function toggleMute() {
   muted = !muted;
   if (master && ctx) master.gain.setTargetAtTime(muted ? 0 : 0.5, ctx.currentTime, 0.1);

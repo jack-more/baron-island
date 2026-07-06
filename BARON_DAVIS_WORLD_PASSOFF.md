@@ -51,6 +51,12 @@ The experience:
   the game panel docks right. First Shot is a drawn court scene (hoop, net, kid, ball
   arc animation); Drop the Beat is a spinning STEELCUT vinyl with a pulse ring and
   equalizer; Fix the Tape uses drawn cassette cards.
+- **Water landing**: the seaplane can actually land. Glide low over open water and
+  she touches down on the pontoons — splash rings, wake trails while taxiing, low
+  camera, quiet wind, gentle bob. Taxi with A/D, hold Space to throttle up and lift
+  off (a hop auto-launches you if you taxi toward a beach). First smooth landing
+  pays +3 tickets. Landing in the café cove puts you inside the radio melody.
+  The autopilot never lands; it keeps touring.
 - **Raffle economy**: game wins = +5 tickets (+2 replays), balloons = +1 each. The
   Raffle Shelf (🎁 in the HUD) lists real-feeling prizes — game-worn signed jersey,
   signed STEELCUT vinyl, Radio Café merch box, SLIC studio session — with ticket

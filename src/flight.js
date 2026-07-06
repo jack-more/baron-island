@@ -2,7 +2,7 @@
 // terrain-following floor, soft ceiling and bounds, plus an autopilot that can
 // tour waypoints or orbit a landmark. Feel target: Wii Sports Resort island flyover.
 import * as THREE from 'three';
-import { clearanceHeight, WORLD_EDGE } from './island.js';
+import { clearanceHeight, terrainHeight, WORLD_EDGE } from './island.js';
 import * as P from './props.js';
 
 export class Flight {
@@ -29,6 +29,9 @@ export class Flight {
     this.autopilot = true;
     this.apTarget = new THREE.Vector3(0, 30, 0);
     this.apOrbit = null;     // {center: Vector3, radius, height}
+
+    this.landed = false;     // resting on the water
+    this.events = [];        // 'splash' | 'takeoff' | 'hop' — consumed by main
 
     this._fwd = new THREE.Vector3();
     this._q = new THREE.Quaternion();
@@ -76,27 +79,67 @@ export class Flight {
       }
     }
 
-    // bank-to-turn
-    const targetRoll = -s.x * 0.85;
-    this.roll += (targetRoll - this.roll) * Math.min(1, 5 * dt);
-    this.yaw += -s.x * 1.05 * dt * (this.speed / this.boostSpeed + 0.55);
-    const targetPitch = THREE.MathUtils.clamp(s.y, -1, 1) * 0.5;
-    this.pitch += (targetPitch - this.pitch) * Math.min(1, 3.2 * dt);
+    const groundH = terrainHeight(this.pos.x, this.pos.z);
+    const overWater = groundH < -0.2;
 
-    const targetSpeed = s.boost ? this.boostSpeed : this.baseSpeed;
-    this.speed += (targetSpeed - this.speed) * Math.min(1, 1.6 * dt);
+    if (this.landed) {
+      // ---- taxiing on the water ----
+      this.pitch += (0 - this.pitch) * Math.min(1, 5 * dt);
+      const targetRoll = -s.x * 0.28 + Math.sin(t * 1.6) * 0.02;
+      this.roll += (targetRoll - this.roll) * Math.min(1, 5 * dt);
+      this.yaw += -s.x * 0.9 * dt;
+      const taxiTarget = s.boost ? 34 : 7;
+      this.speed += (taxiTarget - this.speed) * Math.min(1, (s.boost ? 0.9 : 1.8) * dt);
+      this.forward(this._fwd);
+      this._fwd.y = 0;
+      this.pos.addScaledVector(this._fwd, this.speed * dt);
+      this.pos.y = 1.25 + Math.sin(t * 2.1) * 0.08;
+      // throttle up enough and she lifts off
+      if (this.speed > 27) {
+        this.landed = false;
+        this.pitch = 0.22;
+        this.events.push('takeoff');
+      }
+      // shallow water ahead: hop over the beach
+      if (terrainHeight(this.pos.x + this._fwd.x * 6, this.pos.z + this._fwd.z * 6) > -0.4) {
+        this.landed = false;
+        this.pitch = 0.3;
+        this.speed = Math.max(this.speed, 22);
+        this.events.push('hop');
+      }
+    } else {
+      // ---- airborne ----
+      const targetRoll = -s.x * 0.85;
+      this.roll += (targetRoll - this.roll) * Math.min(1, 5 * dt);
+      this.yaw += -s.x * 1.05 * dt * (this.speed / this.boostSpeed + 0.55);
+      const targetPitch = THREE.MathUtils.clamp(s.y, -1, 1) * 0.5;
+      this.pitch += (targetPitch - this.pitch) * Math.min(1, 3.2 * dt);
 
-    this.forward(this._fwd);
-    this.pos.addScaledVector(this._fwd, this.speed * dt);
+      const targetSpeed = s.boost ? this.boostSpeed : this.baseSpeed;
+      this.speed += (targetSpeed - this.speed) * Math.min(1, 1.6 * dt);
 
-    // terrain floor + soft ceiling
-    const floor = clearanceHeight(this.pos.x, this.pos.z) + 6;
-    if (this.pos.y < floor) {
-      this.pos.y += (floor - this.pos.y) * Math.min(1, 6 * dt);
-      this.pitch = Math.max(this.pitch, 0.06);
+      this.forward(this._fwd);
+      this.pos.addScaledVector(this._fwd, this.speed * dt);
+
+      if (overWater && !this.autopilot) {
+        // glide low over open water -> touchdown on the pontoons
+        if (this.pos.y <= 1.45) {
+          this.landed = true;
+          this.pos.y = 1.25;
+          this.roll *= 0.3;
+          this.events.push('splash');
+        }
+      } else {
+        // terrain floor over land (and for the autopilot, always)
+        const floor = clearanceHeight(this.pos.x, this.pos.z) + 6;
+        if (this.pos.y < floor) {
+          this.pos.y += (floor - this.pos.y) * Math.min(1, 6 * dt);
+          this.pitch = Math.max(this.pitch, 0.06);
+        }
+        if (this.pos.y < 7) this.pos.y = 7;
+      }
+      if (this.pos.y > 130) this.pos.y += (130 - this.pos.y) * Math.min(1, 2 * dt);
     }
-    if (this.pos.y > 130) this.pos.y += (130 - this.pos.y) * Math.min(1, 2 * dt);
-    if (this.pos.y < 7) this.pos.y = 7;
 
     // world bounds: gently turn back toward the island
     const r = Math.hypot(this.pos.x, this.pos.z);
@@ -108,17 +151,17 @@ export class Flight {
 
     // pose the plane (yaw/pitch then roll around forward axis) + gentle bob
     this.group.position.copy(this.pos);
-    this.group.position.y += Math.sin(t * 1.8) * 0.15;
+    if (!this.landed) this.group.position.y += Math.sin(t * 1.8) * 0.15;
     this._e.set(this.pitch, -this.yaw, 0, 'YXZ');
     this.group.quaternion.setFromEuler(this._e);
     this.group.rotateZ(this.roll);
 
     // prop spin
     const prop = this.plane.getObjectByName('prop');
-    prop.rotation.z += dt * (18 + this.speed * 0.6);
+    prop.rotation.z += dt * (this.landed ? 6 + this.speed * 0.5 : 18 + this.speed * 0.6);
 
-    // banner trails behind and below, waving
-    this.banner.position.set(0, -0.55, 4.9);
+    // banner trails behind and below, waving (tucked up while on the water)
+    this.banner.position.set(0, this.landed ? 0.45 : -0.55, 4.9);
     const bp = this.cloth.geometry.attributes.position;
     const base = this.cloth.userData.basePos;
     for (let i = 0; i < bp.count; i++) {

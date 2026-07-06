@@ -410,6 +410,100 @@ function updateCafe() {
   }
 }
 
+// ---------- water FX: splash rings + pontoon wake ----------
+const RING_POOL = 42;
+const waterFx = [];
+{
+  const geo = new THREE.RingGeometry(0.7, 1.0, 22);
+  for (let i = 0; i < RING_POOL; i++) {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide });
+    mat.userData.outlineParameters = { visible: false };
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.visible = false;
+    scene.add(mesh);
+    waterFx.push({ mesh, t: 0, life: 0, grow: 1 });
+  }
+}
+function spawnRing(x, z, scale = 1, life = 0.8, grow = 6) {
+  const fx = waterFx.find(f => f.life <= 0);
+  if (!fx) return;
+  fx.mesh.position.set(x, 0.22, z);
+  fx.mesh.scale.setScalar(scale);
+  fx.baseScale = scale;
+  fx.t = 0; fx.life = life; fx.grow = grow;
+  fx.mesh.visible = true;
+}
+let wakeTimer = 0;
+const _wk = new THREE.Vector3();
+function updateWaterFx(dt) {
+  for (const fx of waterFx) {
+    if (fx.life <= 0) continue;
+    fx.t += dt;
+    const k = fx.t / fx.life;
+    if (k >= 1) { fx.life = 0; fx.mesh.visible = false; continue; }
+    fx.mesh.scale.setScalar(fx.baseScale + fx.t * fx.grow);
+    fx.mesh.material.opacity = 0.75 * (1 - k);
+  }
+  // pontoon wake while taxiing
+  if (flight.landed && flight.speed > 3) {
+    wakeTimer -= dt;
+    if (wakeTimer <= 0) {
+      wakeTimer = 0.09;
+      flight.forward(_wk);
+      const sideX = -_wk.z, sideZ = _wk.x;
+      for (const d of [1, -1]) {
+        spawnRing(flight.pos.x + sideX * 0.9 * d - _wk.x * 1.2, flight.pos.z + sideZ * 0.9 * d - _wk.z * 1.2, 0.5, 0.55, 2.4);
+      }
+    }
+  }
+}
+
+// ---------- toast ----------
+const toastEl = $('toast');
+let toastTimer = null;
+function showToast(text) {
+  toastEl.textContent = text;
+  toastEl.classList.remove('hidden');
+  toastEl.style.animation = 'none';
+  void toastEl.offsetWidth;
+  toastEl.style.animation = '';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 2600);
+}
+
+// ---------- landing events ----------
+const hintEl = $('hint');
+const defaultHint = hintEl.textContent;
+function consumeFlightEvents() {
+  for (const ev of flight.events) {
+    if (ev === 'splash') {
+      AUDIO.splash(true);
+      for (let i = 0; i < 4; i++) spawnRing(flight.pos.x, flight.pos.z, 1 + i * 0.7, 0.9 + i * 0.12, 9);
+      if (!localStorage.getItem('oatmeal-landed')) {
+        localStorage.setItem('oatmeal-landed', '1');
+        tickets += 3;
+        saveTickets();
+        renderCounters();
+        showToast('SMOOTH LANDING · +3 🎟');
+      } else {
+        showToast('ON THE WATER');
+      }
+    } else if (ev === 'takeoff') {
+      AUDIO.splash(false);
+      for (let i = 0; i < 2; i++) spawnRing(flight.pos.x, flight.pos.z, 1 + i, 0.7, 7);
+      showToast('AIRBORNE');
+    } else if (ev === 'hop') {
+      AUDIO.splash(false);
+      spawnRing(flight.pos.x, flight.pos.z, 1.4, 0.7, 7);
+    }
+  }
+  flight.events.length = 0;
+  hintEl.textContent = flight.landed
+    ? 'taxi: A / D · hold space to throttle up and take off'
+    : defaultHint;
+}
+
 // ---------- pickups ----------
 const _d = new THREE.Vector3();
 function checkPickups(t) {
@@ -456,6 +550,10 @@ function updateCamera(dt) {
   } else {
     desired = flight.pos.clone().addScaledVector(_fwd, -16).add(new THREE.Vector3(0, 6.2, 0));
     look = flight.pos.clone().addScaledVector(_fwd, 18);
+    if (flight.landed) {
+      desired = flight.pos.clone().addScaledVector(_fwd, -10.5).add(new THREE.Vector3(0, 3.1, 0));
+      look = flight.pos.clone().addScaledVector(_fwd, 16).add(new THREE.Vector3(0, 1.2, 0));
+    }
     if (mode === 'moment') {
       desired = flight.pos.clone().addScaledVector(_fwd, -22).add(new THREE.Vector3(0, 9, 0));
       look = new THREE.Vector3(focused.def.x, focused.def.ground + 8, focused.def.z).lerp(flight.pos, 0.25);
@@ -526,6 +624,8 @@ function frameBody(dt) {
   }
 
   flight.update(dt, elapsed);
+  consumeFlightEvents();
+  updateWaterFx(dt);
   island.update(elapsed, dt, camera.position);
   marks.update(elapsed, dt);
   checkPickups(elapsed);
@@ -534,7 +634,7 @@ function frameBody(dt) {
   sunTarget.position.copy(flight.pos).setY(0);
   sun.position.copy(sunTarget.position).addScaledVector(sunDir, 260);
 
-  AUDIO.setWind(Math.min(1, (flight.speed - 20) / 30));
+  AUDIO.setWind(flight.landed ? 0.06 : Math.min(1, (flight.speed - 20) / 30));
 
   updateCamera(dt);
   updateLabels();
@@ -553,7 +653,7 @@ frame();
 // debug/testing hooks
 window.baronWorld = {
   skipIntro: endIntro,
-  state: () => ({ mode, pos: flight.pos.toArray().map(v => Math.round(v)), autopilot: flight.autopilot, unlocked: [...unlocked], tickets }),
+  state: () => ({ mode, pos: flight.pos.toArray().map(v => Math.round(v)), autopilot: flight.autopilot, landed: flight.landed, unlocked: [...unlocked], tickets }),
   flyTo: (id) => {
     endIntro();
     const L = marks.landmarks.find(l => l.def.id === id);
