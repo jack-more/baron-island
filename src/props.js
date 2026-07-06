@@ -6,9 +6,12 @@ const gradientTex = (() => {
   const c = document.createElement('canvas');
   c.width = 4; c.height = 1;
   const g = c.getContext('2d');
-  ['#666666', '#999999', '#cccccc', '#ffffff'].forEach((col, i) => {
+  // DBZ cel: three hard bands — deep shadow, mid, full light
+  const c2 = document.createElement('canvas');
+  ['#6a6a72', '#b9b9bd', '#ffffff'].forEach((col, i) => {
     g.fillStyle = col; g.fillRect(i, 0, 1, 1);
   });
+  g.fillStyle = '#ffffff'; g.fillRect(3, 0, 1, 1);
   const t = new THREE.CanvasTexture(c);
   t.minFilter = THREE.NearestFilter;
   t.magFilter = THREE.NearestFilter;
@@ -491,19 +494,59 @@ export function car(color = 0xe0483e) {
   return g;
 }
 
-export function cloud(scale = 1) {
-  const g = new THREE.Group();
-  const m = toon(0xffffff, { transparent: true, opacity: 0.92, emissive: 0xffffff, emissiveIntensity: 0.42 });
-  m.userData.outlineParameters = { visible: false };
-  const blobs = 3 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < blobs; i++) {
-    const b = new THREE.Mesh(new THREE.SphereGeometry(0.5 + Math.random() * 0.45, 10, 8), m);
-    b.position.set((i - blobs / 2) * 0.7, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.5);
-    b.scale.y = 0.55;
-    b.scale.multiplyScalar(scale);
-    b.position.multiplyScalar(scale);
-    g.add(b);
+const cloudTextures = (() => {
+  const texs = [];
+  for (let v = 0; v < 3; v++) {
+    const cvs = document.createElement('canvas');
+    cvs.width = 320; cvs.height = 170;
+    const g = cvs.getContext('2d');
+    g.clearRect(0, 0, 320, 170);
+    const baseY = 128;
+    const lobes = [];
+    const n = 4 + v;
+    for (let i = 0; i < n; i++) {
+      lobes.push({
+        x: 52 + (i / (n - 1)) * 216 + (Math.random() - 0.5) * 14,
+        y: baseY - 26 - Math.random() * 34 - Math.sin((i / (n - 1)) * Math.PI) * 26,
+        r: 30 + Math.random() * 18,
+      });
+    }
+    const drawShape = () => {
+      g.beginPath();
+      for (const L of lobes) { g.moveTo(L.x + L.r, L.y); g.arc(L.x, L.y, L.r, 0, Math.PI * 2); }
+      g.rect(lobes[0].x - 10, baseY - 24, lobes[n - 1].x - lobes[0].x + 20, 24);
+    };
+    // ink outline via fat stroke underneath
+    g.lineJoin = 'round';
+    g.strokeStyle = '#1d2430'; g.lineWidth = 10;
+    drawShape(); g.stroke();
+    // white body
+    g.fillStyle = '#ffffff';
+    drawShape(); g.fill();
+    // cel shadow band along the flat bottom
+    g.save();
+    drawShape(); g.clip();
+    g.fillStyle = '#c9d8e4';
+    g.fillRect(0, baseY - 16, 320, 20);
+    g.restore();
+    const t = new THREE.CanvasTexture(cvs);
+    t.colorSpace = THREE.SRGBColorSpace;
+    texs.push(t);
   }
+  return texs;
+})();
+
+export function cloud(scale = 1) {
+  // 2.5D billboard cloud — always faces the camera, pure Toriyama
+  const g = new THREE.Group();
+  const mat = new THREE.SpriteMaterial({
+    map: cloudTextures[Math.floor(Math.random() * cloudTextures.length)],
+    transparent: true,
+    depthWrite: false,
+  });
+  const sp = new THREE.Sprite(mat);
+  sp.scale.set(15 * scale, 8 * scale, 1);
+  g.add(sp);
   return g;
 }
 

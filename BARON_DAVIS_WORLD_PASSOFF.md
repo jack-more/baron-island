@@ -77,6 +77,11 @@ The experience:
   café melody, win fanfare. No audio assets. Mute button in the HUD.
 - Golden-hour lofi palette: peach horizon, warm sun, faint illustrated contour bands
   on the grass.
+- **DBZ 2.5D cel pass** (July 6): the terrain is a fully circular polar disc
+  (concentric rings + radial spokes — no square grid, no plane corners); toon
+  shading uses three hard cel bands instead of a soft ramp; ink outlines at full
+  weight (0.005); clouds are hand-painted 2.5D billboard sprites — flat-bottomed
+  Toriyama clouds with ink outlines that always face the camera (depthWrite off).
 - **DBZ-Los-Angeles art direction** (July 5 evening pass): Toriyama-style capsule dome
   buildings with porthole windows mixed into every skyline, a big gold **BARON CORP.**
   dome by Summit Tower, orange wasteland mesas on the mountain flanks, hover-capsule

@@ -68,11 +68,9 @@ function hash(x, z) {
 }
 
 function buildTerrain() {
-  const SIZE = 560, SEG = 200;
-  const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
-  geo.rotateX(-Math.PI / 2);
-  const pos = geo.attributes.position;
-  const colors = new Float32Array(pos.count * 3);
+  // fully circular polar disc — concentric rings + radial spokes, no square grid
+  const RINGS = 120, SEGS = 220, RADIUS = 300;
+  const verts = [], colors = [], idx = [];
   const sand = new THREE.Color(0xe8d5a3);
   const sandWet = new THREE.Color(0xd9c58e);
   const grass = new THREE.Color(0x72cb58);
@@ -80,26 +78,40 @@ function buildTerrain() {
   const rockC = new THREE.Color(0x9d9484);
   const dirt = new THREE.Color(0xc2a878);
   const tmp = new THREE.Color();
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), z = pos.getZ(i);
-    const h = terrainHeight(x, z);
-    pos.setY(i, h);
-    const slope = terrainSlope(x, z);
-    const n = hash(Math.round(x * 0.35), Math.round(z * 0.35));
-    if (h < 1.6) tmp.copy(h < 0.4 ? sandWet : sand);
-    else {
-      tmp.copy(grass).lerp(grassDark, n * 0.8);
-      if (h < 3.2) tmp.lerp(sand, (3.2 - h) / 1.6 * 0.5);
-      // blend to rock on steep slopes and up the mountain
-      const rockiness = Math.max(sm(0.8, 1.25, slope), sm(26, 38, h));
-      tmp.lerp(rockC.clone().lerp(dirt, n * 0.4), rockiness);
-      // faint illustrated contour bands
-      if (rockiness < 0.45 && Math.sin(h * 1.85) > 0.78) tmp.multiplyScalar(1.08);
+  for (let ri = 0; ri <= RINGS; ri++) {
+    const r = (ri / RINGS) * RADIUS;
+    for (let si = 0; si < SEGS; si++) {
+      const a = (si / SEGS) * Math.PI * 2;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      const h = terrainHeight(x, z);
+      verts.push(x, h, z);
+      const slope = terrainSlope(x, z);
+      const n = hash(Math.round(x * 0.35), Math.round(z * 0.35));
+      if (h < 1.6) tmp.copy(h < 0.4 ? sandWet : sand);
+      else {
+        tmp.copy(grass).lerp(grassDark, n * 0.8);
+        if (h < 3.2) tmp.lerp(sand, (3.2 - h) / 1.6 * 0.5);
+        const rockiness = Math.max(sm(0.8, 1.25, slope), sm(26, 38, h));
+        tmp.lerp(rockC.clone().lerp(dirt, n * 0.4), rockiness);
+        if (rockiness < 0.45 && Math.sin(h * 1.85) > 0.78) tmp.multiplyScalar(1.08);
+      }
+      colors.push(tmp.r, tmp.g, tmp.b);
     }
-    colors[i * 3] = tmp.r; colors[i * 3 + 1] = tmp.g; colors[i * 3 + 2] = tmp.b;
   }
+  for (let ri = 0; ri < RINGS; ri++) {
+    for (let si = 0; si < SEGS; si++) {
+      const a = ri * SEGS + si;
+      const b = ri * SEGS + (si + 1) % SEGS;
+      const c = (ri + 1) * SEGS + si;
+      const d = (ri + 1) * SEGS + (si + 1) % SEGS;
+      idx.push(a, b, c, b, d, c);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geo.setIndex(idx);
   geo.computeVertexNormals();
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const mat = P.toon(0xffffff, { vertexColors: true });
   mat.userData.outlineParameters = { visible: false };
   const mesh = new THREE.Mesh(geo, mat);

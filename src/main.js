@@ -16,7 +16,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const effect = new OutlineEffect(renderer, {
-  defaultThickness: 0.0042,
+  defaultThickness: 0.005,
   defaultColor: [0.07, 0.08, 0.11],
 });
 
